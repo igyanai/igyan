@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import StudentDashboard from "./pages/Dashboard/StudentDashboard";
 import CourseModulePage from "./pages/Courses";
 import AboutPage from "./pages/About";
+import UserDashboard from "./components/userDashboard";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/courses" element={<CourseModulePage/>}/>
             <Route path="/about" element={<AboutPage />} />
             <Route path="/dashboard/student" element={<StudentDashboard />} />
+            <Route path="/dashboard/me" element={<UserDashboard/>}/>
             {/* <Route path="*" element={<NotFound />} /> */}
           </Routes>
           {useLocation().pathname !== '/aiguide' && <Footer />}

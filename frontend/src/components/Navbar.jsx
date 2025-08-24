@@ -67,14 +67,16 @@ const Navbar = () => {
             {/* Desktop Auth */}
             {isLoggedIn ? (
               <div className="hidden sm:flex items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700">
+                <NavLink
+                to="/dashboard/me" 
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700">
                   <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                     <User className="text-white w-3 h-3" />
                   </div>
                   <span className="text-sm font-medium text-gray-300 max-w-24 truncate">
                     {user?.name || 'User'}
                   </span>
-                </div>
+                </NavLink>
                 <button
                   onClick={handleAuth}
                   className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-red-400 bg-red-900/20 hover:bg-red-900/30 rounded-full border border-red-900/50 transition-colors"

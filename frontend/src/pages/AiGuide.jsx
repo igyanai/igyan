@@ -3,30 +3,22 @@ import {
   Bot, User, Send, Code,
   ArrowLeft, Mic, Rocket,
   Moon, Sun, Menu, X, Gamepad2, Video, Brain, Monitor,
-  Smartphone, Cloud,
-  UserCog
+  Smartphone, Cloud, UserCog, AlertCircle, RefreshCw
 } from 'lucide-react';
 
 const AIGuide = () => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'ai',
-      content: "Hi there! 👋 I'm GYAN-AI, your personal learning companion powered by cutting-edge AI. I specialize in modern tech skills, career transitions, and personalized learning paths. Ready to unlock your potential?",
-      timestamp: new Date(),
-      suggestions: [
-        "Show me AI/ML career paths 🤖",
-        "Create my coding bootcamp plan 💻",
-        "Trending skills in 2025 🔥",
-        "Remote work opportunities 🌐"
-      ]
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('aiGuide-darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [currentChatId, setCurrentChatId] = useState(null);
+  const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
 
   const quickActions = [
@@ -45,15 +37,20 @@ const AIGuide = () => {
     "DevOps & CI/CD", "Blockchain", "Cybersecurity", "UI/UX Design"
   ];
 
-  const aiResponses = [
-    "Excellent question! Based on 2025 market trends, I'd recommend focusing on AI integration skills. Here's your personalized roadmap...",
-    "Great choice! The demand for these skills has grown 300% this year. Let me create a step-by-step learning plan...",
-    "I love your enthusiasm! This field offers amazing remote opportunities. Here's what successful professionals are doing...",
-    "Perfect timing! Many companies are hiring for these roles. Let me show you the exact skills they're looking for...",
-    "That's a smart career move! I've helped 500+ students transition successfully. Here's your custom action plan..."
-  ];
-
+  // Load chat history and current chat on mount
   useEffect(() => {
+    loadChatHistory();
+    const savedChatId = localStorage.getItem('aiGuide-currentChatId');
+    if (savedChatId) {
+      loadChat(savedChatId);
+    } else {
+      initializeNewChat();
+    }
+  }, []);
+
+  // Save dark mode preference
+  useEffect(() => {
+    localStorage.setItem('aiGuide-darkMode', JSON.stringify(darkMode));
     if (darkMode) {
       document.documentElement.classList.add('dark');
     } else {
@@ -61,9 +58,145 @@ const AIGuide = () => {
     }
   }, [darkMode]);
 
-  const handleSendMessage = (messageText = null) => {
+  // Auto scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const loadChatHistory = () => {
+    const saved = localStorage.getItem('aiGuide-chatHistory');
+    if (saved) {
+      setChatHistory(JSON.parse(saved));
+    }
+  };
+
+  const saveChatHistory = (history) => {
+    localStorage.setItem('aiGuide-chatHistory', JSON.stringify(history));
+    setChatHistory(history);
+  };
+
+  const initializeNewChat = () => {
+    const newChatId = Date.now().toString();
+    const welcomeMessage = {
+      id: 1,
+      type: 'ai',
+      content: "Hi there! 👋 I'm GYAN-AI, your personal learning companion powered by cutting-edge AI. I specialize in modern tech skills, career transitions, and personalized learning paths. What would you like to learn today?",
+      timestamp: new Date(),
+    };
+
+    setCurrentChatId(newChatId);
+    setMessages([welcomeMessage]);
+    localStorage.setItem('aiGuide-currentChatId', newChatId);
+
+    // Add to chat history
+    const newChat = {
+      id: newChatId,
+      title: "New Chat",
+      messages: [welcomeMessage],
+      lastUpdated: new Date().toISOString(),
+    };
+
+    // Get fresh chat history and add new chat at the beginning
+    const savedHistory = localStorage.getItem('aiGuide-chatHistory');
+    const currentHistory = savedHistory ? JSON.parse(savedHistory) : [];
+    const updatedHistory = [newChat, ...currentHistory];
+    saveChatHistory(updatedHistory);
+  };
+
+  const loadChat = (chatId) => {
+    // Get the most up-to-date chat history from localStorage
+    const savedHistory = localStorage.getItem('aiGuide-chatHistory');
+    const currentHistory = savedHistory ? JSON.parse(savedHistory) : chatHistory;
+
+    const chat = currentHistory.find(c => c.id === chatId);
+    if (chat) {
+      setCurrentChatId(chatId);
+      setMessages(chat.messages || []);
+      localStorage.setItem('aiGuide-currentChatId', chatId);
+
+      // Update chatHistory state if it was out of sync
+      if (savedHistory && currentHistory !== chatHistory) {
+        setChatHistory(currentHistory);
+      }
+    } else {
+      console.warn('Chat not found:', chatId);
+    }
+  };
+
+  const saveCurrentChat = (updatedMessages) => {
+    if (!currentChatId) return;
+
+    // Get fresh chat history from localStorage to avoid stale state
+    const savedHistory = localStorage.getItem('aiGuide-chatHistory');
+    const currentHistory = savedHistory ? JSON.parse(savedHistory) : chatHistory;
+
+    const updatedHistory = currentHistory.map(chat => {
+      if (chat.id === currentChatId) {
+        const title = updatedMessages.length > 1
+          ? updatedMessages[1]?.content.slice(0, 50) + (updatedMessages[1]?.content.length > 50 ? "..." : "")
+          : "New Chat";
+
+        return {
+          ...chat,
+          title,
+          messages: updatedMessages,
+          lastUpdated: new Date().toISOString(),
+        };
+      }
+      return chat;
+    });
+
+    saveChatHistory(updatedHistory);
+  };
+
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const callOpenAI = async (messageContent, conversationHistory) => {
+    try {
+      console.log('Sending request to API:', { messageContent, historyLength: conversationHistory.length });
+
+      const response = await fetch(`${API_BASE_URL}/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: messageContent,
+          history: chatHistory
+        })
+      });
+
+
+      console.log('API Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('API Response data:', data);
+
+      return data.message || data.content || data.response || "I received your message but couldn't generate a proper response.";
+    } catch (error) {
+      console.error('OpenAI API Error Details:', error);
+
+      // More specific error messages
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error("Cannot connect to the server. Make sure your backend is running on the correct port.");
+      } else if (error.message.includes('404')) {
+        throw new Error("API endpoint not found. Check if '/api/chat' route exists in your backend.");
+      } else if (error.message.includes('500')) {
+        throw new Error("Server error. Check your OpenAI API key and backend logs.");
+      } else {
+        throw new Error(`Connection failed: ${error.message}`);
+      }
+    }
+  };
+
+  const handleSendMessage = async (messageText = null) => {
     const message = messageText || inputMessage.trim();
-    if (!message || isTyping) return;
+    if (!message || isLoading) return;
+
+    setError(null);
 
     // Add user message
     const userMessage = {
@@ -73,27 +206,44 @@ const AIGuide = () => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInputMessage('');
-    setIsTyping(true);
+    setIsLoading(true);
 
-    // Simulate AI response after delay
-    setTimeout(() => {
+    try {
+      // Get AI response from OpenAI API
+      const aiResponse = await callOpenAI(message, messages);
+
       const aiMessage = {
         id: Date.now() + 1,
         type: 'ai',
-        content: aiResponses[Math.floor(Math.random() * aiResponses.length)],
+        content: aiResponse,
         timestamp: new Date(),
-        suggestions: [
-          "Show me learning resources 📚",
-          "What's the salary range? 💰",
-          "Find me practice projects 🛠️",
-          "Create study schedule ⏰"
-        ]
       };
-      setMessages(prev => [...prev, aiMessage]);
-      setIsTyping(false);
-    }, 1500);
+
+      const finalMessages = [...updatedMessages, aiMessage];
+      setMessages(finalMessages);
+      saveCurrentChat(finalMessages);
+
+    } catch (error) {
+      setError("Sorry, I'm having trouble connecting to my AI brain right now. Please try again in a moment.");
+
+      // Add error message to chat
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'ai',
+        content: "I apologize, but I'm experiencing some technical difficulties. Please try again, and if the problem persists, check your internet connection or try refreshing the page.",
+        timestamp: new Date(),
+        isError: true
+      };
+
+      const finalMessages = [...updatedMessages, errorMessage];
+      setMessages(finalMessages);
+      saveCurrentChat(finalMessages);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSuggestionClick = (suggestion) => {
@@ -105,15 +255,64 @@ const AIGuide = () => {
   };
 
   const startVoiceInput = () => {
-    setIsListening(true);
-    setTimeout(() => {
-      setIsListening(false);
-      setInputMessage("I want to transition into AI and machine learning. What's the best path for 2025?");
-    }, 2000);
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new window.webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      setIsListening(true);
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInputMessage(transcript);
+        setIsListening(false);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+        setError("Voice recognition failed. Please try again.");
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } else {
+      setError("Voice recognition is not supported in your browser.");
+    }
   };
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
+  };
+
+  const startNewChat = () => {
+    initializeNewChat();
+  };
+
+  const deleteChat = (chatId) => {
+    const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
+    saveChatHistory(updatedHistory);
+
+    if (currentChatId === chatId) {
+      initializeNewChat();
+    }
+  };
+
+  const retryLastMessage = () => {
+    if (messages.length < 2) return;
+
+    const lastUserMessage = [...messages].reverse().find(msg => msg.type === 'user');
+    if (lastUserMessage) {
+      // Remove the last AI message (error message) and retry
+      const messagesWithoutLastAI = messages.filter((msg, index) =>
+        !(index === messages.length - 1 && msg.type === 'ai')
+      );
+      setMessages(messagesWithoutLastAI);
+      handleSendMessage(lastUserMessage.content);
+    }
   };
 
   const themeClasses = {
@@ -157,17 +356,16 @@ const AIGuide = () => {
     <div className={`min-h-screen transition-all duration-300 ${currentTheme.background} relative overflow-hidden`}>
       {/* Creative Tech Background Pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-
         {/* Circuit Board Pattern */}
         <svg className={`absolute inset-0 w-full h-full ${currentTheme.circuitPattern} opacity-30`} viewBox="0 0 100 40">
           <defs>
             <pattern id="circuit" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M0 10h10v-2h8v2h2v8h-2v2h-8v-2h-10z" fill="none" stroke="currentColor" strokeWidth="0.5"/>
-              <circle cx="5" cy="5" r="1" fill="currentColor"/>
-              <circle cx="15" cy="15" r="1" fill="currentColor"/>
+              <path d="M0 10h10v-2h8v2h2v8h-2v2h-8v-2h-10z" fill="none" stroke="currentColor" strokeWidth="0.5" />
+              <circle cx="5" cy="5" r="1" fill="currentColor" />
+              <circle cx="15" cy="15" r="1" fill="currentColor" />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#circuit)"/>
+          <rect width="100%" height="100%" fill="url(#circuit)" />
         </svg>
 
         {/* Floating Tech Icons */}
@@ -195,16 +393,69 @@ const AIGuide = () => {
         <div className="absolute inset-0">
           <div className={`absolute top-20 left-20 w-32 h-32 border ${darkMode ? 'border-slate-700' : 'border-slate-400'} rotate-45 opacity-20 animate-spin-slow`}></div>
           <div className={`absolute bottom-32 right-32 w-24 h-24 border ${darkMode ? 'border-slate-600' : 'border-slate-500'} rounded-full opacity-20 animate-pulse`}></div>
-          <div className={`absolute top-1/2 left-10 w-16 h-16 ${darkMode ? 'bg-slate-700' : 'bg-slate-400'} rotate-12 opacity-10 animate-bounce`} style={{animationDuration: '3s'}}></div>
+          <div className={`absolute top-1/2 left-10 w-16 h-16 ${darkMode ? 'bg-slate-700' : 'bg-slate-400'} rotate-12 opacity-10 animate-bounce`} style={{ animationDuration: '3s' }}></div>
         </div>
       </div>
 
       <div className="relative z-10 flex h-screen pt-0">
         {/* Sidebar */}
-        <div className={`fixed lg:relative inset-y-0 left-0 z-40 w-80 transform transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } ${currentTheme.sidebar} border-r pt-16 lg:pt-0`}>
-          <div className="p-6 h-full overflow-y-auto">
+        <div className={`fixed lg:relative inset-y-0 left-0 z-40 w-80 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          } ${currentTheme.sidebar} border-r pt-16 lg:pt-0`}>
+          <div className="p-6 h-full overflow-y-auto flex flex-col">
+            {/* New Chat Button */}
+            <button
+              onClick={startNewChat}
+              className="w-full p-3 mb-6 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 shadow-sm"
+            >
+              <Brain size={16} />
+              <span>New Chat</span>
+            </button>
+
+            {/* Chat History */}
+            <div className="mb-6 flex-1">
+              <h3 className={`text-sm font-semibold mb-3 ${currentTheme.sidebarText}`}>Recent Chats</h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {chatHistory.slice(0, 10).map((chat) => (
+                  <div
+                    key={chat.id}
+                    className={`group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all ${currentChatId === chat.id
+                      ? 'bg-blue-600/20 border border-blue-600/30'
+                      : darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'
+                      }`}
+                    onClick={() => {
+                      console.log('Loading chat:', chat.id, chat.title); // Debug log
+                      loadChat(chat.id);
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs truncate ${currentTheme.sidebarText}`}>
+                        {chat.title || "Untitled Chat"}
+                      </p>
+                      <p className={`text-xs ${currentTheme.sidebarSecondary}`}>
+                        {new Date(chat.lastUpdated).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('Deleting chat:', chat.id); // Debug log
+                        deleteChat(chat.id);
+                      }}
+                      className={`opacity-0 group-hover:opacity-100 p-1 rounded ${darkMode ? 'hover:bg-slate-600' : 'hover:bg-slate-200'
+                        } transition-all`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {chatHistory.length === 0 && (
+                  <p className={`text-xs ${currentTheme.sidebarSecondary} text-center py-4`}>
+                    No previous chats
+                  </p>
+                )}
+              </div>
+            </div>
+
             <h2 className={`text-xl font-bold mb-6 ${currentTheme.sidebarText}`}>
               🚀 Learning Paths
             </h2>
@@ -215,11 +466,10 @@ const AIGuide = () => {
                 <button
                   key={index}
                   onClick={() => handleQuickAction(action)}
-                  className={`w-full p-4 rounded-xl transition-all duration-300 text-left group hover:scale-[1.02] hover:shadow-md ${
-                    darkMode 
-                      ? 'bg-slate-700/50 hover:bg-slate-700 border border-slate-600' 
-                      : 'bg-slate-50 hover:bg-slate-100 border border-slate-200'
-                  }`}
+                  className={`w-full p-4 rounded-xl transition-all duration-300 text-left group hover:scale-[1.02] hover:shadow-md ${darkMode
+                    ? 'bg-slate-700/50 hover:bg-slate-700 border border-slate-600'
+                    : 'bg-slate-50 hover:bg-slate-100 border border-slate-200'
+                    }`}
                 >
                   <div className="flex items-start space-x-3">
                     <div className={`p-2 rounded-lg ${action.color} shadow-sm`}>
@@ -252,29 +502,6 @@ const AIGuide = () => {
                 ))}
               </div>
             </div>
-
-            {/* Stats */}
-            <div className={`p-4 rounded-xl ${
-              darkMode ? 'bg-slate-700/50' : 'bg-slate-50'
-            } shadow-sm`}>
-              <h3 className={`font-bold mb-3 ${currentTheme.sidebarText}`}>
-                AI Guide Impact
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className={currentTheme.sidebarSecondary}>Learners Guided</span>
-                  <span className={`font-semibold ${currentTheme.sidebarText}`}>25,000+</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className={currentTheme.sidebarSecondary}>Success Rate</span>
-                  <span className={`font-semibold ${currentTheme.sidebarText}`}>96%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className={currentTheme.sidebarSecondary}>Avg. Response</span>
-                  <span className={`font-semibold ${currentTheme.sidebarText}`}>&lt; 1 sec</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -294,14 +521,15 @@ const AIGuide = () => {
                   <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
                     <Bot className="text-white" size={24} />
                   </div>
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-slate-800 animate-pulse"></div>
+                  <div className={`absolute -top-1 -right-1 w-4 h-4 ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'
+                    } rounded-full border-2 border-white dark:border-slate-800`}></div>
                 </div>
                 <div className="flex-1">
                   <h1 className={`text-xl md:text-2xl font-bold ${currentTheme.sidebarText}`}>
                     I-GYAN AI Assistant
                   </h1>
                   <p className={`text-base ${currentTheme.sidebarSecondary} font-semibold`}>
-                    Specialized in 2025 tech skills & career guidance
+                    {isLoading ? 'Thinking...' : 'Specialized in 2025 tech skills & career guidance'}
                   </p>
                 </div>
               </div>
@@ -309,20 +537,23 @@ const AIGuide = () => {
               {/* Dark Mode Toggle */}
               <div className="flex items-center space-x-4">
                 <div className="hidden sm:flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-green-500 font-medium">Active</span>
+                  <div className={`w-2 h-2 ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'
+                    } rounded-full`}></div>
+                  <span className={`text-sm font-medium ${isLoading ? 'text-yellow-500' : 'text-green-500'
+                    }`}>
+                    {isLoading ? 'Processing' : 'Active'}
+                  </span>
                 </div>
                 <button
                   onClick={toggleDarkMode}
-                  className={`relative p-3 rounded-full transition-all duration-300 ${
-                    darkMode 
-                      ? 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400' 
-                      : 'bg-slate-600/20 hover:bg-slate-600/30 text-slate-600'
-                  } shadow-sm hover:scale-110`}
+                  className={`relative p-3 rounded-full transition-all duration-300 ${darkMode
+                    ? 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400'
+                    : 'bg-slate-600/20 hover:bg-slate-600/30 text-slate-600'
+                    } shadow-sm hover:scale-110`}
                   title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 >
                   {darkMode ? (
-                    <Sun size={20} className="animate-spin" style={{animationDuration: '8s'}} />
+                    <Sun size={20} className="animate-spin" style={{ animationDuration: '8s' }} />
                   ) : (
                     <Moon size={20} className="animate-pulse" />
                   )}
@@ -331,46 +562,61 @@ const AIGuide = () => {
             </div>
           </div>
 
+          {/* Error Banner */}
+          {error && (
+            <div className="p-4 bg-red-100 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="text-red-500" size={16} />
+                  <span className="text-red-700 dark:text-red-300 text-sm">{error}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={retryLastMessage}
+                    className="flex items-center space-x-1 px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs transition-colors"
+                  >
+                    <RefreshCw size={12} />
+                    <span>Retry</span>
+                  </button>
+                  <button
+                    onClick={() => setError(null)}
+                    className="text-red-500 hover:text-red-600 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Messages - Scrollable Area */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] md:max-w-3xl ${message.type === 'user' ? 'order-2' : ''}`}>
                   <div className={`flex items-start space-x-3 ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${
-                      message.type === 'user'
-                        ? 'bg-blue-600 text-white'
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${message.type === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : message.isError
+                        ? 'bg-red-500 text-white'
                         : 'bg-slate-600 text-white'
-                    }`}>
-                      {message.type === 'user' ? <User size={16} /> : <Bot size={16} />}
+                      }`}>
+                      {message.type === 'user' ? <User size={16} /> :
+                        message.isError ? <AlertCircle size={16} /> : <Bot size={16} />}
                     </div>
 
                     <div className={`flex-1 ${message.type === 'user' ? 'text-right' : ''}`}>
-                      <div className={`inline-block p-3 md:p-4 rounded-2xl max-w-full transition-all duration-200 hover:scale-[1.01] ${
-                        message.type === 'user'
-                          ? currentTheme.userMessage + ' shadow-sm'
+                      <div className={`inline-block p-3 md:p-4 rounded-2xl max-w-full transition-all duration-200 hover:scale-[1.01] ${message.type === 'user'
+                        ? currentTheme.userMessage + ' shadow-sm'
+                        : message.isError
+                          ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 shadow-sm'
                           : currentTheme.aiMessage + ' shadow-sm'
-                      }`}>
-                        <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                        }`}>
+                        <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{message.content}</p>
                       </div>
 
-                      {/* Suggestions */}
-                      {message.suggestions && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {message.suggestions.map((suggestion, index) => (
-                            <button
-                              key={index}
-                              onClick={() => handleSuggestionClick(suggestion)}
-                              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 hover:scale-105 ${currentTheme.suggestionButton} shadow-sm`}
-                            >
-                              {suggestion}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
                       <div className={`text-xs mt-2 ${message.type === 'user' ? 'text-right' : ''} ${currentTheme.sidebarSecondary}`}>
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>
@@ -378,11 +624,11 @@ const AIGuide = () => {
               </div>
             ))}
 
-            {/* Typing Indicator */}
-            {isTyping && (
+            {/* Loading Indicator */}
+            {isLoading && (
               <div className="flex justify-start">
                 <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-600 text-white flex items-center justify-center animate-pulse shadow-sm">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-600 text-white flex items-center justify-center animate-pulse shadow-sm">
                     <Bot size={16} />
                   </div>
                   <div className={`p-3 md:p-4 rounded-2xl ${currentTheme.aiMessage}`}>
@@ -411,17 +657,17 @@ const AIGuide = () => {
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     placeholder="Ask about AI, coding, career paths, or any learning topic... 🚀"
                     className={`w-full px-4 md:px-6 py-3 md:py-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm transition-all shadow-sm ${currentTheme.input}`}
-                    disabled={isTyping}
+                    disabled={isLoading}
                   />
 
                   <button
                     type="button"
                     onClick={startVoiceInput}
-                    className={`absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-all ${
-                      isListening
-                        ? 'bg-red-500 text-white animate-pulse shadow-sm'
-                        : `${currentTheme.button} hover:scale-110 shadow-sm`
-                    }`}
+                    disabled={isLoading}
+                    className={`absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-all disabled:opacity-50 ${isListening
+                      ? 'bg-red-500 text-white animate-pulse shadow-sm'
+                      : `${currentTheme.button} hover:scale-110 shadow-sm`
+                      }`}
                   >
                     <Mic size={16} />
                   </button>
@@ -429,26 +675,31 @@ const AIGuide = () => {
 
                 <button
                   onClick={() => handleSendMessage()}
-                  disabled={!inputMessage.trim() || isTyping}
+                  disabled={!inputMessage.trim() || isLoading}
                   className="px-4 md:px-6 py-3 md:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-sm hover:scale-105"
                 >
-                  <Send size={16} />
-                  <span className="hidden sm:block">Send</span>
+                  {isLoading ? (
+                    <RefreshCw size={16} className="animate-spin" />
+                  ) : (
+                    <Send size={16} />
+                  )}
+                  <span className="hidden sm:block">{isLoading ? 'Sending...' : 'Send'}</span>
                 </button>
               </div>
 
               {/* Quick Suggestions */}
               <div className="mt-4 flex flex-wrap gap-2 justify-center">
                 {[
-                  "🔥 AI Tools for Learning",
-                  "💻 Remote Job Skills",
-                  "🎯 Career Transition",
-                  "📱 Build Portfolio"
+                  "🔥 Latest AI tools for developers",
+                  "💻 Best remote job skills 2025",
+                  "🎯 Career change to tech",
+                  "📱 Build impressive portfolio"
                 ].map((suggestion, index) => (
                   <button
                     key={index}
                     onClick={() => handleSendMessage(suggestion)}
-                    className={`px-3 py-1 rounded-full text-xs transition-all hover:scale-105 ${currentTheme.suggestionButton} shadow-sm`}
+                    disabled={isLoading}
+                    className={`px-3 py-1 rounded-full text-xs transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${currentTheme.suggestionButton} shadow-sm`}
                   >
                     {suggestion}
                   </button>

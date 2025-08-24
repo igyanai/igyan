@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - I-GYAN.AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .tagline {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .alternative-link {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+        
+        .alternative-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .link-text {
+            font-size: 13px;
+            color: #667eea;
+            font-family: monospace;
+        }
+        
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+        }
+        
+        .footer-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .social-links {
+            margin: 15px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .warning-text {
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .header {
+                padding: 25px 20px;
+            }
+            
+            .cta-button {
+                width: 100%;
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">I-GYAN.AI</div>
+            <div class="tagline">Premium Learning Platform</div>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">Hello {{name}}! 👋</div>
+            
+            <div class="message">
+                Welcome to I-GYAN.AI! We're excited to have you join our community of learners and mentors.
+                <br><br>
+                To get started and access all features, please verify your email address by clicking the button below:
+            </div>
+            
+            <div class="button-container">
+                <a href="{{verificationUrl}}" class="cta-button">Verify My Email</a>
+            </div>
+            
+            <div class="alternative-link">
+                <div class="alternative-text">
+                    If the button doesn't work, copy and paste this link into your browser:
+                </div>
+                <div class="link-text">{{verificationUrl}}</div>
+            </div>
+            
+            <div class="warning">
+                <div class="warning-text">
+                    ⚠️ This verification link will expire in 24 hours for security reasons.
+                    If you didn't create an account with I-GYAN.AI, please ignore this email.
+                </div>
+            </div>
+            
+            <div class="message">
+                Once verified, you'll be able to:
+                <ul style="margin: 15px 0 0 20px; color: #555;">
+                    <li>Access your personalized dashboard</li>
+                    <li>Connect with mentors and fellow learners</li>
+                    <li>Track your learning progress</li>
+                    <li>Join our community discussions</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="footer-text">
+                Need help? Contact us at <a href="mailto:{{supportEmail}}" style="color: #667eea;">{{supportEmail}}</a>
+            </div>
+            
+            <div class="social-links">
+                <a href="#">Privacy Policy</a> |
+                <a href="#">Terms of Service</a> |
+                <a href="#">Contact Us</a>
+            </div>
+            
+            <div class="footer-text" style="margin-top: 15px; font-size: 12px;">
+                © {{currentYear}} I-GYAN.AI. All rights reserved.
+            </div>
+        </div>
+    </div>
+</body>
+</html>
