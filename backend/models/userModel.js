@@ -26,16 +26,15 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: function() {
-      return !this.googleId; // Password not required for Google OAuth users
+      return !this.googleId; 
     },
     minlength: [6, 'Password must be at least 6 characters long'],
     validate: {
       validator: function(password) {
-        // Skip validation if it's a Google OAuth user
+        
         if (this.googleId && !password) return true;
         if (!password) return false;
         
-        // Check for at least one uppercase, one lowercase, and one number
         return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password);
       },
       message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number'
@@ -90,7 +89,6 @@ const userSchema = new mongoose.Schema({
     github: String
   },
   
-  // Authentication fields
   isEmailVerified: {
     type: Boolean,
     default: false
@@ -98,20 +96,17 @@ const userSchema = new mongoose.Schema({
   emailVerificationToken: String,
   emailVerificationExpires: Date,
   
-  // Password reset fields
   passwordResetToken: String,
   passwordResetExpires: Date,
   
-  // Google OAuth fields
   googleId: String,
-  
-  // Refresh token for JWT
+
   refreshTokens: [{
     token: String,
     createdAt: {
       type: Date,
       default: Date.now,
-      expires: 604800 // 7 days
+      expires: 604800 
     }
   }],
   
@@ -183,16 +178,13 @@ userSchema.virtual('isLocked').get(function() {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
-// Pre-save middleware to hash password
 userSchema.pre('save', async function(next) {
-  // Only hash the password if it has been modified (or is new)
+
   if (!this.isModified('password')) return next();
-  
-  // Skip hashing if no password (Google OAuth users)
+
   if (!this.password) return next();
 
   try {
-    // Hash password with cost of 12
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
     next();
@@ -201,7 +193,6 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Pre-save middleware to set terms acceptance date
 userSchema.pre('save', function(next) {
   if (this.isModified('agreedToTerms') && this.agreedToTerms && !this.agreedToTermsAt) {
     this.agreedToTermsAt = new Date();
@@ -209,13 +200,11 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-// Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method to generate access token
 userSchema.methods.generateAccessToken = function() {
   return jwt.sign(
     { 
@@ -245,7 +234,7 @@ userSchema.methods.generateEmailVerificationToken = function() {
     .createHash('sha256')
     .update(token)
     .digest('hex');
-  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; 
   
   return token;
 };
@@ -257,14 +246,14 @@ userSchema.methods.generatePasswordResetToken = function() {
     .createHash('sha256')
     .update(token)
     .digest('hex');
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; 
   
   return token;
 };
 
 // Method to handle login attempts and account locking
 userSchema.methods.incLoginAttempts = function() {
-  // If we have a previous lock that has expired, restart at 1
+ 
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return this.updateOne({
       $unset: { lockUntil: 1 },
@@ -276,7 +265,7 @@ userSchema.methods.incLoginAttempts = function() {
   
   // If we've reached max attempts and it's not locked already, lock the account
   if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
-    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // 2 hours lock
+    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; 
   }
   
   return this.updateOne(updates);

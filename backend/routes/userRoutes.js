@@ -9,15 +9,13 @@ const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinar
 
 const router = express.Router();
 
-// Configure multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 5 * 1024 * 1024, 
   },
   fileFilter: (req, file, cb) => {
-    // Only allow image files
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
@@ -26,7 +24,6 @@ const upload = multer({
   },
 });
 
-// Validation rules for profile update
 const profileUpdateValidation = [
   body('name')
     .optional()
@@ -100,9 +97,6 @@ const profileUpdateValidation = [
     .withMessage('Please provide a valid GitHub URL'),
 ];
 
-// @route   GET /api/user/profile
-// @desc    Get user profile
-// @access  Private
 router.get('/profile', auth, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -142,9 +136,6 @@ router.get('/profile', auth, async (req, res, next) => {
   }
 });
 
-// @route   PUT /api/user/profile
-// @desc    Update user profile
-// @access  Private
 router.put('/profile', auth, profileUpdateValidation, async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -212,9 +203,6 @@ router.put('/profile', auth, profileUpdateValidation, async (req, res, next) => 
   }
 });
 
-// @route   POST /api/user/avatar
-// @desc    Upload user avatar
-// @access  Private
 router.post('/avatar', auth, upload.single('avatar'), async (req, res, next) => {
   try {
     if (!req.file) {
@@ -267,9 +255,6 @@ router.post('/avatar', auth, upload.single('avatar'), async (req, res, next) => 
   }
 });
 
-// @route   DELETE /api/user/avatar
-// @desc    Remove user avatar
-// @access  Private
 router.delete('/avatar', auth, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -293,7 +278,7 @@ router.delete('/avatar', auth, async (req, res, next) => {
       await deleteFromCloudinary(user.avatar);
     } catch (deleteError) {
       console.error('Error deleting avatar:', deleteError);
-      // Continue with removal even if Cloudinary deletion fails
+      
     }
 
     // Remove avatar from user
@@ -310,9 +295,6 @@ router.delete('/avatar', auth, async (req, res, next) => {
   }
 });
 
-// @route   PUT /api/user/preferences
-// @desc    Update user preferences
-// @access  Private
 router.put('/preferences', auth, [
   body('notifications.email')
     .optional()
@@ -376,9 +358,6 @@ router.put('/preferences', auth, [
   }
 });
 
-// @route   GET /api/user/stats
-// @desc    Get user statistics
-// @access  Private
 router.get('/stats', auth, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -420,9 +399,6 @@ router.get('/stats', auth, async (req, res, next) => {
   }
 });
 
-// @route   POST /api/user/deactivate
-// @desc    Deactivate user account
-// @access  Private
 router.post('/deactivate', auth, [
   body('password')
     .notEmpty()
@@ -490,9 +466,6 @@ router.post('/deactivate', auth, [
   }
 });
 
-// @route   GET /api/user/public/:userId
-// @desc    Get public user profile
-// @access  Public
 router.get('/public/:userId', async (req, res, next) => {
   try {
     const { userId } = req.params;

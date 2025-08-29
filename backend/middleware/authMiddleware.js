@@ -1,10 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
 
-// Main authentication middleware
 const auth = async (req, res, next) => {
   try {
-    // Get token from cookies or Authorization header
     let token = req.cookies?.accessToken;
     
     if (!token && req.headers.authorization) {
@@ -22,10 +20,8 @@ const auth = async (req, res, next) => {
     }
 
     try {
-      // Verify access token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret');
-      
-      // Get user from database
+ 
       const user = await User.findById(decoded.id);
       
       if (!user) {
@@ -42,7 +38,6 @@ const auth = async (req, res, next) => {
         });
       }
 
-      // Add user info to request
       req.user = {
         id: user._id,
         email: user.email,
@@ -50,7 +45,6 @@ const auth = async (req, res, next) => {
         isEmailVerified: user.isEmailVerified
       };
 
-      // Also add refresh token if available for logout functionality
       req.refreshToken = req.cookies?.refreshToken;
 
       next();
@@ -125,7 +119,7 @@ const optionalAuth = async (req, res, next) => {
 
   } catch (error) {
     console.error('Optional auth middleware error:', error);
-    next(); // Continue anyway for optional auth
+    next(); 
   }
 };
 
@@ -172,20 +166,16 @@ const requireUserType = (allowedTypes) => {
   };
 };
 
-// Combined middleware for auth + email verification
 const authWithEmailVerification = [auth, requireEmailVerification];
 
-// Combined middleware for auth + user type
 const authWithUserType = (allowedTypes) => [auth, requireUserType(allowedTypes)];
 
-// Combined middleware for auth + email verification + user type
 const authWithEmailAndUserType = (allowedTypes) => [
   auth, 
   requireEmailVerification, 
   requireUserType(allowedTypes)
 ];
 
-// Middleware to check if user is admin (if you implement admin functionality)
 const requireAdmin = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
@@ -194,7 +184,6 @@ const requireAdmin = (req, res, next) => {
     });
   }
 
-  // Assuming you have an isAdmin field or admin user type
   if (req.user.userType !== 'admin' && !req.user.isAdmin) {
     return res.status(403).json({
       success: false,
@@ -205,13 +194,12 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-// Rate limiting per user
+const attempts = new Map();
 const createUserRateLimit = (windowMs, max) => {
-  const attempts = new Map();
 
   return (req, res, next) => {
     if (!req.user) {
-      return next(); // Skip rate limiting for unauthenticated requests
+      return next(); 
     }
 
     const userId = req.user.id;
@@ -239,7 +227,6 @@ const createUserRateLimit = (windowMs, max) => {
 // Clean up expired rate limit entries periodically
 setInterval(() => {
   const now = Date.now();
-  const attempts = new Map();
   
   for (const [userId, timestamps] of attempts.entries()) {
     const validTimestamps = timestamps.filter(timestamp => now - timestamp < 15 * 60 * 1000);

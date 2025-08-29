@@ -96,6 +96,7 @@ const useFormState = (validateField) => {
       setErrors(prev => ({ ...prev, [name]: error }));
     }
   };
+  
 
   const toggleMode = () => {
     setIsSignUp(prev => !prev);
@@ -301,7 +302,7 @@ const SuccessMessage = ({ message }) => (
 );
 
 const LoginModal = () => {
-  const { showLogin, setShowLogin, login, loginWithGoogle, forgotPassword } = useAuth();
+  const { showLogin, setShowLogin, login, loginWithGoogle, forgotPassword, loading: authLoading } = useAuth();
   const { validateForm, validateField } = useFormValidation();
   const {
     isSignUp, isForgotPassword, showPassword, setShowPassword, userType, setUserType,
@@ -309,8 +310,13 @@ const LoginModal = () => {
     successMessage, setSuccessMessage, handleInputChange, toggleMode, toggleForgotPassword, resetForm
   } = useFormState(validateField);
 
+  // Disable form when auth context is loading
+  const formDisabled = isLoading || authLoading;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (formDisabled) return;
 
     if (isForgotPassword) {
       // Handle forgot password
@@ -332,6 +338,7 @@ const LoginModal = () => {
           setErrors({ submit: result.message });
         }
       } catch (error) {
+        console.error('Forgot password error:', error);
         setErrors({ submit: 'An unexpected error occurred. Please try again.' });
       } finally {
         setIsLoading(false);
@@ -375,8 +382,12 @@ const LoginModal = () => {
         } else {
           setErrors({ submit: result.message });
         }
+      } else {
+        // Success - modal will be closed by auth context
+        resetForm();
       }
     } catch (error) {
+      console.error('Login/Register error:', error);
       setErrors({ submit: 'An unexpected error occurred. Please try again.' });
     } finally {
       setIsLoading(false);
@@ -384,21 +395,23 @@ const LoginModal = () => {
   };
 
   const handleGoogleLogin = () => {
-    if (!isLoading) {
+    if (!formDisabled) {
       console.log('[LOGIN MODAL] Google login clicked');
       loginWithGoogle();
     }
   };
 
   const handleClose = () => {
-    setShowLogin(false);
-    setTimeout(resetForm, 300);
+    if (!formDisabled) {
+      setShowLogin(false);
+      setTimeout(resetForm, 300);
+    }
   };
 
   // Handle escape key
   React.useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && showLogin && !isLoading) {
+      if (e.key === 'Escape' && showLogin && !formDisabled) {
         handleClose();
       }
     };
@@ -412,7 +425,7 @@ const LoginModal = () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [showLogin, isLoading]);
+  }, [showLogin, formDisabled]);
 
   if (!showLogin) return null;
 
@@ -420,11 +433,12 @@ const LoginModal = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="fixed inset-0" onClick={handleClose} />
 
-      <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="relative w-full max-w-md max-h-[95vh] overflow-y-auto scrollbar-hide bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
         {/* Header */}
         <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
           <button
             onClick={handleClose}
+            disabled={formDisabled}
             className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/20 transition-colors"
           >
             <X size={20} />
@@ -434,26 +448,17 @@ const LoginModal = () => {
           {isForgotPassword && (
             <button
               onClick={toggleForgotPassword}
+              disabled={formDisabled}
               className="absolute top-4 left-4 p-2 rounded-full hover:bg-white/20 transition-colors"
             >
               <ArrowLeft size={20} />
             </button>
           )}
 
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 bg-white/20 rounded flex items-center justify-center">
-              <BookOpen size={20} />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">I-GYAN.AI</h2>
-              <p className="text-blue-100 text-sm">Premium Learning Platform</p>
-            </div>
-          </div>
-
-          <h3 className="text-lg font-semibold">
+          <h3 className="text-lg text-center font-semibold">
             {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
           </h3>
-          <p className="text-blue-100 text-sm">
+          <p className="text-blue-100 text-center text-sm">
             {isForgotPassword 
               ? 'Enter your email to receive a reset link'
               : isSignUp 
@@ -469,7 +474,7 @@ const LoginModal = () => {
             <UserTypeSelector
               userType={userType}
               setUserType={setUserType}
-              disabled={isLoading}
+              disabled={formDisabled}
             />
           )}
 
@@ -481,7 +486,7 @@ const LoginModal = () => {
               onChange={handleInputChange}
               placeholder="Enter your full name"
               error={errors.name}
-              disabled={isLoading}
+              disabled={formDisabled}
             />
           )}
 
@@ -493,7 +498,7 @@ const LoginModal = () => {
             onChange={handleInputChange}
             placeholder="Enter your email"
             error={errors.email}
-            disabled={isLoading}
+            disabled={formDisabled}
           />
 
           {!isForgotPassword && (
@@ -507,7 +512,7 @@ const LoginModal = () => {
               showPasswordToggle
               onTogglePassword={() => setShowPassword(!showPassword)}
               showPassword={showPassword}
-              disabled={isLoading}
+              disabled={formDisabled}
             />
           )}
 
@@ -516,7 +521,7 @@ const LoginModal = () => {
               <TermsCheckbox
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                disabled={isLoading}
+                disabled={formDisabled}
               />
               {errors.terms && (
                 <p className="text-red-500 text-sm flex items-center space-x-1">
@@ -541,7 +546,7 @@ const LoginModal = () => {
           )}
 
           <SubmitButton 
-            isLoading={isLoading} 
+            isLoading={formDisabled} 
             isSignUp={isSignUp} 
             isForgotPassword={isForgotPassword} 
           />
@@ -557,7 +562,7 @@ const LoginModal = () => {
                 </div>
               </div>
 
-              <GoogleLoginButton onClick={handleGoogleLogin} disabled={isLoading} />
+              <GoogleLoginButton onClick={handleGoogleLogin} disabled={formDisabled} />
             </>
           )}
 
@@ -569,7 +574,7 @@ const LoginModal = () => {
                   <button
                     type="button"
                     onClick={toggleMode}
-                    disabled={isLoading}
+                    disabled={formDisabled}
                     className="ml-1 text-blue-600 dark:text-blue-400 font-semibold hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSignUp ? 'Sign In' : 'Sign Up'}
@@ -582,7 +587,7 @@ const LoginModal = () => {
                     <button
                       type="button"
                       onClick={toggleForgotPassword}
-                      disabled={isLoading}
+                      disabled={formDisabled}
                       className="ml-1 text-blue-600 dark:text-blue-400 font-semibold hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Reset here
@@ -596,7 +601,7 @@ const LoginModal = () => {
                 <button
                   type="button"
                   onClick={toggleForgotPassword}
-                  disabled={isLoading}
+                  disabled={formDisabled}
                   className="ml-1 text-blue-600 dark:text-blue-400 font-semibold hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Sign In

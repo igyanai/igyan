@@ -361,3 +361,12 @@ select:focus-visible {
   animation: scaleIn 0.8s ease-out forwards;
 }
 
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}

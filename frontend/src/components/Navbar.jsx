@@ -18,13 +18,34 @@ const navItems = [
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { isLoggedIn, setShowLogin, user, logout } = useAuth();
+  const { isLoggedIn, setShowLogin, user, logout, loading } = useAuth();
 
   const closeMenu = () => setIsOpen(false);
   const handleAuth = () => {
     closeMenu();
     isLoggedIn ? logout() : setShowLogin(true);
   };
+
+  // Don't render navbar while loading
+  if (loading) {
+    return (
+      <nav className="sticky top-0 z-50 bg-white/50 backdrop-blur-xl border-b border-gray-800 shadow-lg font-mono">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 p-2 bg-indigo-700 rounded-lg flex items-center justify-center animate-pulse">
+                <BrainCircuit className="text-white w-6 h-6" />
+              </div>
+              <span className="text-xl sm:text-2xl font-bold bg-indigo-700 bg-clip-text text-transparent">
+                I-GYAN.AI
+              </span>
+            </div>
+            <div className="w-8 h-8 border-2 border-indigo-700 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="sticky top-0 z-50 bg-white/50  backdrop-blur-xl border-b border-gray-800 shadow-lg font-mono">
@@ -33,12 +54,7 @@ const Navbar = () => {
           
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 p-2 bg-indigo-700 rounded-lg flex items-center justify-center animate-pulse">
-              <BrainCircuit className="text-white w-6 h-6" />
-            </div>
-            <span className="text-xl sm:text-2xl font-bold bg-indigo-700 bg-clip-text text-transparent transition-all duration-300">
-              I-GYAN.AI
-            </span>
+            <img src='src/assets/logo.png' style={{width:200, height:65}}/>
           </div>
 
           {/* Desktop Navigation */}
@@ -68,10 +84,14 @@ const Navbar = () => {
             {isLoggedIn ? (
               <div className="hidden sm:flex items-center gap-2">
                 <NavLink
-                to="/dashboard/me" 
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700">
+                  to="/dashboard/me" 
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors">
                   <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                    <User className="text-white w-3 h-3" />
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <User className="text-white w-3 h-3" />
+                    )}
                   </div>
                   <span className="text-sm font-medium text-gray-300 max-w-24 truncate">
                     {user?.name || 'User'}
@@ -129,14 +149,21 @@ const Navbar = () => {
             <div className="pt-4 mt-4 border-t border-gray-800">
               {isLoggedIn ? (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-800 border border-gray-700">
+                  <NavLink
+                    to="/dashboard/me"
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors">
                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                      <User className="text-white w-4 h-4" />
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        <User className="text-white w-4 h-4" />
+                      )}
                     </div>
                     <span className="font-medium text-gray-300">
                       {user?.name || 'User'}
                     </span>
-                  </div>
+                  </NavLink>
                   <button
                     onClick={handleAuth}
                     className="w-full flex items-center justify-center gap-2 p-3 text-sm font-medium text-red-400 bg-red-900/20 hover:bg-red-900/30 rounded-lg border border-red-900/50 transition-colors"

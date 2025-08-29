@@ -10,21 +10,19 @@ const authController = require('../controllers/authController');
 
 const router = express.Router();
 
-// Specific rate limiters for sensitive operations
 const strictAuthLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3, // Only 3 attempts per 15 minutes
+  windowMs: 15 * 60 * 1000, 
+  max: 3, 
   message: 'Too many attempts, please try again later.',
   skipSuccessfulRequests: true,
 });
 
 const forgotPasswordLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Only 3 forgot password requests per hour
+  windowMs: 60 * 60 * 1000, 
+  max: 3, 
   message: 'Too many password reset requests, please try again later.',
 });
 
-// Validation rules
 const registerValidation = [
   body('name')
     .trim()
@@ -93,25 +91,21 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
 
   res.cookie('accessToken', accessToken, {
     ...cookieOptions,
-    maxAge: 15 * 60 * 1000, // 15 minutes
+    maxAge: 15 * 60 * 1000, 
   });
 
   res.cookie('refreshToken', refreshToken, {
     ...cookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000, 
   });
 };
 
-// Helper function to clear auth cookies
 const clearAuthCookies = (res) => {
   res.clearCookie('accessToken');
   res.clearCookie('refreshToken');
 };
 
-// @route   POST /api/auth/register
-// @desc    Register user
-// @access  Public
-router.post('/register',authController.register, registerValidation, async (req, res, next) => {
+router.post('/register',registerValidation, authController.register, async (req, res, next) => {
   try {
     // Check validation errors
     const errors = validationResult(req);
@@ -145,7 +139,7 @@ router.post('/register',authController.register, registerValidation, async (req,
     });
 
     // Generate email verification token
-    const verificationToken = user.generateEmailVerificationToken();
+    const emailVerificationToken = user.generateEmailVerificationToken();
     
     await user.save();
 
@@ -157,7 +151,7 @@ router.post('/register',authController.register, registerValidation, async (req,
         template: 'emailVerification',
         context: {
           name: user.name,
-          verificationUrl: `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`
+          verificationUrl: `${process.env.FRONTEND_URL}/verify-email/${emailVerificationToken}`
         }
       });
     } catch (emailError) {
@@ -182,10 +176,7 @@ router.post('/register',authController.register, registerValidation, async (req,
   }
 });
 
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
-router.post('/login',authController.login, loginValidation, async (req, res, next) => {
+router.post('/login',loginValidation,authController.login, async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -291,9 +282,6 @@ router.post('/login',authController.login, loginValidation, async (req, res, nex
   }
 });
 
-// @route   POST /api/auth/logout
-// @desc    Logout user
-// @access  Private
 router.post('/logout', optionalAuth, async (req, res, next) => {
   try {
     // If user is authenticated, remove refresh token
@@ -317,9 +305,6 @@ router.post('/logout', optionalAuth, async (req, res, next) => {
   }
 });
 
-// @route   POST /api/auth/refresh
-// @desc    Refresh access token
-// @access  Public (but requires refresh token)
 router.post('/refresh', async (req, res, next) => {
   try {
     const { refreshToken } = req.cookies;
@@ -381,9 +366,6 @@ router.post('/refresh', async (req, res, next) => {
   }
 });
 
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
 router.get('/me', auth, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -422,9 +404,6 @@ router.get('/me', auth, async (req, res, next) => {
   }
 });
 
-// @route   POST /api/auth/forgot-password
-// @desc    Send password reset email
-// @access  Public
 router.post('/forgot-password', forgotPasswordLimiter, forgotPasswordValidation, async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -486,9 +465,6 @@ router.post('/forgot-password', forgotPasswordLimiter, forgotPasswordValidation,
   }
 });
 
-// @route   PUT /api/auth/reset-password/:token
-// @desc    Reset password with token
-// @access  Public
 router.put('/reset-password/:token', strictAuthLimiter, resetPasswordValidation, async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -534,9 +510,6 @@ router.put('/reset-password/:token', strictAuthLimiter, resetPasswordValidation,
   }
 });
 
-// @route   GET /api/auth/verify-email/:token
-// @desc    Verify email address
-// @access  Public
 router.get('/verify-email/:token', async (req, res, next) => {
   try {
     const { token } = req.params;
@@ -584,10 +557,7 @@ router.get('/verify-email/:token', async (req, res, next) => {
   }
 });
 
-// @route   POST /api/auth/resend-verification
-// @desc    Resend email verification
-// @access  Private
-router.post('/resend-verification',authController.resendVerificationEmail, auth, async (req, res, next) => {
+router.post('/resend-verification',authController.resendVerificationEmail, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
     
@@ -606,7 +576,7 @@ router.post('/resend-verification',authController.resendVerificationEmail, auth,
     }
 
     // Generate new verification token
-    const verificationToken = user.generateEmailVerificationToken();
+    const emailVerificationToken = user.generateEmailVerificationToken();
     await user.save();
 
     // Send verification email
@@ -617,7 +587,7 @@ router.post('/resend-verification',authController.resendVerificationEmail, auth,
         template: 'emailVerification',
         context: {
           name: user.name,
-          verificationUrl: `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`
+          verificationUrl: `${process.env.FRONTEND_URL}/verify-email/${emailVerificationToken}`
         }
       });
     } catch (emailError) {
@@ -638,9 +608,6 @@ router.post('/resend-verification',authController.resendVerificationEmail, auth,
   }
 });
 
-// @route   PUT /api/auth/change-password
-// @desc    Change password (when logged in)
-// @access  Private
 router.put('/change-password', auth, [
   body('currentPassword')
     .notEmpty()
@@ -703,17 +670,10 @@ router.put('/change-password', auth, [
   }
 });
 
-// Google OAuth routes
-// @route   GET /api/auth/google
-// @desc    Google OAuth login
-// @access  Public
 router.get('/google', 
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
-// @route   GET /api/auth/google/callback
-// @desc    Google OAuth callback
-// @access  Public
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login?error=oauth_failed` }),
   async (req, res, next) => {

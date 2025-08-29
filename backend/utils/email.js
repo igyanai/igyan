@@ -4,20 +4,18 @@ const fs = require('fs').promises;
 const path = require('path');
 
 let transporter;
-// Create email transporter
 const createTransporter = async () => {
-  if (transporter) return transporter; // reuse existing one
+  if (transporter) return transporter; 
 
   if (process.env.NODE_ENV === 'production') {
     transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // Gmail app password
+        pass: process.env.EMAIL_PASS, 
       },
     });
   } else {
-    // Dev mode — dynamically generate Ethereal account
     const testAccount = await nodemailer.createTestAccount();
     transporter = nodemailer.createTransport({
       host: 'smtp.ethereal.email',
@@ -33,10 +31,8 @@ const createTransporter = async () => {
 };
 
 
-// Cache for compiled templates
 const templateCache = new Map();
 
-// Compile and cache email templates
 const getCompiledTemplate = async (templateName) => {
   if (templateCache.has(templateName)) {
     return templateCache.get(templateName);
@@ -48,7 +44,6 @@ const getCompiledTemplate = async (templateName) => {
   return compiledTemplate;
 };
 
-// Main email sending function
 const sendEmail = async (options) => {
   try {
     const transporterInstance = await createTransporter();
@@ -84,7 +79,6 @@ const sendEmail = async (options) => {
       previewUrl: process.env.NODE_ENV !== 'production' ? nodemailer.getTestMessageUrl(info) : null
     };
   } catch (error) {
-    // Simple retry logic for Gmail rate limits
     if (error.response && error.response.includes('rate limited')) {
       console.warn('Rate limited — retrying in 30s...');
       await new Promise(res => setTimeout(res, 30000));
@@ -95,7 +89,6 @@ const sendEmail = async (options) => {
   }
 };
 
-// Specific email functions
 const sendWelcomeEmail = async (userEmail, userName) => {
   return sendEmail({
     to: userEmail,
@@ -148,7 +141,6 @@ const sendAccountDeactivationNotification = async (userEmail, userName) => {
   });
 };
 
-// Register Handlebars helpers
 handlebars.registerHelper('currentYear', () => {
   return new Date().getFullYear();
 });

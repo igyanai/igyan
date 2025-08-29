@@ -1,13 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Configure axios defaults
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.withCredentials = true;
+
+axios.interceptors.request.use(
+  (config) => {
+    config.withCredentials = true;
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 const AuthContext = createContext();
 
-// Enhanced axios interceptor for handling token refresh
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -22,7 +31,6 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Response interceptor for handling token refresh and 401s
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -65,12 +73,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
 
-  // Derived state
   const isLoggedIn = !!user && !loading;
   const isEmailVerified = user?.isEmailVerified || false;
   const canAccessDashboard = isLoggedIn && isEmailVerified;
 
-  // Check authentication status
   const checkAuthStatus = async () => {
     setLoading(true);
     
@@ -86,6 +92,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
       }
     } catch (error) {
+      console.error('Auth check error:', error);
       localStorage.removeItem('user');
       setUser(null);
     } finally {
@@ -93,8 +100,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Initial auth check
   useEffect(() => {
+
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        localStorage.removeItem('user');
+      }
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     
     if (urlParams.get('googleAuth') === 'success') {
@@ -105,25 +121,33 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Login function with enhanced error handling
   const login = async (credentials, isSignUp = false) => {
     try {
       const endpoint = isSignUp ? '/auth/register' : '/auth/login';
       const response = await axios.post(endpoint, credentials);
 
       if (response.data.success) {
-        setUser(response.data.user);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        const userData = response.data.user;
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
         setShowLogin(false);
         
         return {
           success: true,
           message: response.data.message,
-          user: response.data.user,
+          user: userData,
           needsEmailVerification: response.data.needsEmailVerification
+        };
+      } else {
+        return {
+          success: false,
+          message: response.data.message,
+          user: userData,
+          needsEmailVerification: response.data.needsEmailVerification || false
         };
       }
     } catch (error) {
+      console.error('Login error:', error);
       const errorData = error.response?.data;
       return {
         success: false,
@@ -134,7 +158,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       await axios.post('/auth/logout');
@@ -147,24 +170,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Update user function
   const updateUser = (userData) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
-  // Google OAuth login
   const loginWithGoogle = () => {
     setShowLogin(false);
-    window.location.href = `${axios.defaults.baseURL}/auth/google`;
+    window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
-  // Email verification
   const verifyEmail = async (token) => {
     try {
       const response = await axios.get(`/auth/verify-email/${token}`);
       if (response.data.success) {
-        await checkAuthStatus(); // Refresh user data
+        const updatedUser = response.data.user;
+        if (updatedUser) {
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        } else {
+          await checkAuthStatus(); 
+        }
       }
       return {
         success: true,
@@ -231,8 +257,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.put('/user/profile', profileData);
       if (response.data.success) {
-        setUser(response.data.user);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        const updatedUser = response.data.user;
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
       }
       return {
         success: true,
@@ -240,6 +267,7 @@ export const AuthProvider = ({ children }) => {
         user: response.data.user
       };
     } catch (error) {
+      console.error('Update profile error:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to update profile',
@@ -293,6 +321,7 @@ export const AuthProvider = ({ children }) => {
         avatar: response.data.avatar
       };
     } catch (error) {
+      console.error('Upload avatar error:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to upload avatar'
@@ -317,6 +346,7 @@ export const AuthProvider = ({ children }) => {
         message: response.data.message
       };
     } catch (error) {
+      console.error('Remove avatar error:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to remove avatar'
@@ -342,6 +372,7 @@ export const AuthProvider = ({ children }) => {
         preferences: response.data.preferences
       };
     } catch (error) {
+      console.error('Update preferences error:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to update preferences',
@@ -383,6 +414,7 @@ export const AuthProvider = ({ children }) => {
         message: response.data.message
       };
     } catch (error) {
+      console.error('Deactivate account error:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to deactivate account',
