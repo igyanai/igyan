@@ -91,6 +91,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/igyan-ai'
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/user', userRoutes);
 
+// ************* routes of project and company & mentor routes **************
+const apiRoutes = require('./routes/api');
+app.use('/api', apiRoutes);
+
+
 const OpenAI = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
