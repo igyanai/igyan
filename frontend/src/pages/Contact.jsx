@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { PopupWidget } from 'react-calendly';
 import {
   FaEnvelope,
   FaPhone,
@@ -30,6 +31,8 @@ const Contact = () => {
     category: 'general'
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [calendlyOpen, setCalendlyOpen] = useState(false);
+  const formRef = useRef(null);
 
   const contactReasons = [
     {
@@ -116,6 +119,11 @@ const Contact = () => {
     }
   ];
 
+  // Sync form category with selected category
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, category: selectedCategory }));
+  }, [selectedCategory]);
+
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -139,8 +147,12 @@ const Contact = () => {
     }, 3000);
   };
 
+  const handleStartConversation = () => {
+    formRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-200">
 
       {/* Hero Section */}
       <section className="py-16 bg-gradient-cool relative overflow-hidden">
@@ -153,14 +165,23 @@ const Contact = () => {
             <p className="text-xl md:text-2xl mb-8 opacity-90">
               We'd love to hear from you. Send us a message and we'll respond as soon as possible.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="btn-glass">
+              <button onClick={handleStartConversation} className="btn-glass">
                 Start a Conversation
               </button>
-              <button className="btn-glass">
+              <button onClick={() => setCalendlyOpen(true)} className="btn-glass ">
                 Schedule a Call
               </button>
+          
+                <PopupWidget
+                  url="https://calendly.com/igyan-demo/30min"
+                  onModalClose={() => setCalendlyOpen(false)}
+                  open={calendlyOpen}
+                  rootElement={document.getElementById("root")}
+                  className="hidden "
+                  
+                  />
             </div>
           </div>
         </div>
@@ -177,11 +198,10 @@ const Contact = () => {
               <button
                 key={reason.id}
                 onClick={() => setSelectedCategory(reason.id)}
-                className={`p-6 rounded-2xl transition-all duration-300 text-center ${
-                  selectedCategory === reason.id
+                className={`p-6 rounded-2xl bg-gray-700 text-gray-300 transition-all duration-300 text-center ${selectedCategory === reason.id
                     ? 'bg-blue-700 text-white shadow-glow scale-105'
                     : 'bg-card border border-border hover:border-primary/50 hover:shadow-soft'
-                }`}
+                  }`}
               >
                 <div className="text-4xl mb-3">
                   {reason.emoji}
@@ -195,7 +215,7 @@ const Contact = () => {
       </section>
 
       {/* Contact Form & Info */}
-      <section className="py-16">
+      <section ref={formRef} className="py-16">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Contact Form */}
@@ -204,7 +224,7 @@ const Contact = () => {
                 <h2 className="text-2xl font-bold mb-6 text-gradient">
                   Send us a Message ✉️
                 </h2>
-                
+
                 {isSubmitted ? (
                   <div className="text-center py-12">
                     <div className="text-6xl mb-4">🎉</div>
@@ -453,6 +473,8 @@ const Contact = () => {
           </div>
         </div>
       </section>
+
+
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PopupWidget } from 'react-calendly';
 import {
   FaGraduationCap,
   FaCode,
@@ -25,6 +26,8 @@ import { Link } from 'react-router-dom';
 const Mentor = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState('find'); // 'find' or 'apply'
+  const [calendlyOpen, setCalendlyOpen] = useState(false);
+  const [selectedMentorUrl, setSelectedMentorUrl] = useState('');
 
   const categories = [
     { name: 'All', count: 128, emoji: '🎯' },
@@ -52,7 +55,8 @@ const Mentor = () => {
       responseTime: '< 2 hours',
       availability: 'Weekdays 6-9 PM',
       featured: true,
-      verified: true
+      verified: true,
+      calendlyUrl: 'https://calendly.com/priya-sharma-example'
     },
     {
       id: 2,
@@ -71,7 +75,8 @@ const Mentor = () => {
       responseTime: '< 4 hours',
       availability: 'Weekends',
       featured: true,
-      verified: true
+      verified: true,
+      calendlyUrl: 'https://calendly.com/rahul-patel-example'
     },
     {
       id: 3,
@@ -90,7 +95,8 @@ const Mentor = () => {
       responseTime: '< 3 hours',
       availability: 'Flexible',
       featured: false,
-      verified: true
+      verified: true,
+      calendlyUrl: 'https://calendly.com/ananya-gupta-example'
     },
     {
       id: 4,
@@ -109,7 +115,8 @@ const Mentor = () => {
       responseTime: '< 6 hours',
       availability: 'Evenings',
       featured: false,
-      verified: true
+      verified: true,
+      calendlyUrl: 'https://calendly.com/arjun-singh-example'
     }
   ];
 
@@ -143,9 +150,13 @@ const Mentor = () => {
     )
   );
 
-  return (
-    <div className="min-h-screen bg-background">
+  const handleBookSession = (url) => {
+    setSelectedMentorUrl(url);
+    setCalendlyOpen(true);
+  };
 
+  return (
+    <div className="min-h-screen bg-gray-100">
       {/* Hero Section */}
       <section className="py-16 bg-gradient-secondary relative overflow-hidden">
         <div className="absolute inset-0 bg-gray-800"></div>
@@ -201,7 +212,7 @@ const Mentor = () => {
                   <button
                     key={index}
                     onClick={() => setSelectedCategory(category.name)}
-                    className={`px-4 py-2 rounded-full transition-all duration-300 ${selectedCategory === category.name
+                    className={`px-4 py-2 bg-gray-700 text-gray-200 rounded-full transition-all duration-300 ${selectedCategory === category.name
                         ? 'bg-blue-700 text-whiteshadow-soft'
                         : 'bg-card border border-border hover:border-primary/50'
                       }`}
@@ -310,7 +321,10 @@ const Mentor = () => {
 
                       {/* Action Buttons */}
                       <div className="flex space-x-3">
-                        <button className="flex-1 bg-blue-700 text-white py-3 rounded font-semibold hover:bg-blue-700-glow transition-colors">
+                        <button
+                          onClick={() => handleBookSession(mentor.calendlyUrl)}
+                          className="flex-1 bg-blue-900 text-white py-3 rounded font-semibold hover:bg-blue-700-glow transition-colors"
+                        >
                           Book Session
                         </button>
                         <button className="px-4 py-3 border border-border rounded hover:border-blue-700 transition-colors">
@@ -376,8 +390,11 @@ const Mentor = () => {
                         </div>
 
                         {/* CTA */}
-                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold hover:bg-blue-700-glow transition-colors">
-                          View Profile
+                        <button
+                          onClick={() => handleBookSession(mentor.calendlyUrl)}
+                          className="w-full bg-blue-600 hover:bg-blue-900 text-white py-2 rounded-lg font-semibold hover:bg-blue-700-glow transition-colors"
+                        >
+                          Book Session
                         </button>
                       </div>
                     </div>
@@ -415,7 +432,7 @@ const Mentor = () => {
                           </li>
                         ))}
                       </ul>
-                      <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded font-semibold hover:bg-blue-700-glow transition-colors">
+                      <button className="w-full bg-blue-600 hover:bg-blue-900 text-white py-3 rounded font-semibold hover:bg-blue-700-glow transition-colors">
                         Get Started
                       </button>
                     </div>
@@ -544,6 +561,18 @@ const Mentor = () => {
             </div>
           </div>
         </section>
+      )}
+
+      {selectedMentorUrl && (
+        <PopupWidget
+          url={selectedMentorUrl}
+          onModalClose={() => {
+            setCalendlyOpen(false);
+            setSelectedMentorUrl('');
+          }}
+          open={calendlyOpen}
+          rootElement={document.getElementById("root")}
+        />
       )}
     </div>
   );

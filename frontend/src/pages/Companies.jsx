@@ -1,150 +1,46 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProjects, fetchCompanies } from '../redux/slices/companySlice.js';
 import {
-  FaBuilding,
-  FaUsers,
-  FaProjectDiagram,
-  FaCode,
-  FaDesktop,
-  FaChartLine,
-  FaHandshake,
-  FaAward,
-  FaClock,
-  FaMapMarkerAlt,
-  FaMoneyBillWave,
-  FaArrowLeft,
-  FaSearch,
-  FaFilter,
-  FaEye,
-  FaHeart,
-  FaStar,
-  FaCheckCircle,
-  FaExternalLinkAlt,
-  FaCalendarAlt
+  FaUsers, FaProjectDiagram, FaStar, FaCheckCircle, FaAward,
+  FaSearch, FaFilter, FaHeart, FaExternalLinkAlt, FaCalendarAlt
 } from 'react-icons/fa';
+
 import { Link } from 'react-router-dom';
 
 const Companies = () => {
-  const [selectedTab, setSelectedTab] = useState('projects'); // 'projects' or 'partnership'
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const dispatch = useDispatch();
+  const { companies: apiCompanies, projects: apiProjects, loading } = useSelector(
+    (state) => state.companies
+  );
+
+  const [selectedTab, setSelectedTab] = useState("projects");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  // ✅ Default fallback data
+  const defaultProjects = [/* keep your static projects here */];
+  const defaultCompanies = [/* keep your static companies here */];
+
+  useEffect(() => {
+    dispatch(fetchCompanies());
+    dispatch(fetchProjects());
+  }, [dispatch]);
+
+  // ✅ Use API data if available, else fallback
+  const projects = apiProjects.length > 0 ? apiProjects : defaultProjects;
+  const companies = apiCompanies.length > 0 ? apiCompanies : defaultCompanies;
 
   const categories = [
-    { name: 'All', count: 89, emoji: '🎯' },
-    { name: 'Web Development', count: 32, emoji: '🌐' },
-    { name: 'Mobile Apps', count: 24, emoji: '📱' },
-    { name: 'Data Science', count: 18, emoji: '📊' },
-    { name: 'AI/ML', count: 15, emoji: '🤖' }
+    { name: "All", count: projects.length, emoji: "🎯" },
+    { name: "Web Development", count: projects.filter(p => p.category === "Web Development").length, emoji: "🌐" },
+    { name: "Mobile Apps", count: projects.filter(p => p.category === "Mobile Apps").length, emoji: "📱" },
+    { name: "Data Science", count: projects.filter(p => p.category === "Data Science").length, emoji: "📊" },
+    { name: "AI/ML", count: projects.filter(p => p.category === "AI/ML").length, emoji: "🤖" }
   ];
 
-  const projects = [
-    {
-      id: 1,
-      title: 'E-commerce Recommendation Engine',
-      company: 'TechCorp Solutions',
-      companyLogo: '🏢',
-      description: 'Build an AI-powered recommendation system for our e-commerce platform to improve user engagement and sales.',
-      category: 'AI/ML',
-      difficulty: 'Advanced',
-      duration: '8-12 weeks',
-      budget: '₹50,000 - ₹80,000',
-      skills: ['Python', 'Machine Learning', 'TensorFlow', 'API Integration'],
-      applicants: 45,
-      deadline: '2024-02-15',
-      location: 'Remote',
-      featured: true,
-      verified: true,
-      requirements: 'Previous ML experience required, portfolio must include recommendation systems'
-    },
-    {
-      id: 2,
-      title: 'Mobile App for Healthcare',
-      company: 'MediTech Innovations',
-      companyLogo: '🏥',
-      description: 'Develop a React Native app for patient management and telemedicine consultations.',
-      category: 'Mobile Apps',
-      difficulty: 'Intermediate',
-      duration: '6-8 weeks',
-      budget: '₹40,000 - ₹60,000',
-      skills: ['React Native', 'Node.js', 'MongoDB', 'Video APIs'],
-      applicants: 32,
-      deadline: '2024-02-20',
-      location: 'Hybrid (Bangalore)',
-      featured: true,
-      verified: true,
-      requirements: 'Healthcare domain knowledge preferred, HIPAA compliance understanding'
-    },
-    {
-      id: 3,
-      title: 'Real-time Analytics Dashboard',
-      company: 'DataFlow Systems',
-      companyLogo: '📊',
-      description: 'Create a real-time dashboard for monitoring business metrics and KPIs.',
-      category: 'Web Development',
-      difficulty: 'Intermediate',
-      duration: '4-6 weeks',
-      budget: '₹30,000 - ₹45,000',
-      skills: ['React', 'D3.js', 'WebSockets', 'PostgreSQL'],
-      applicants: 28,
-      deadline: '2024-02-25',
-      location: 'Remote',
-      featured: false,
-      verified: true,
-      requirements: 'Experience with data visualization and real-time systems'
-    },
-    {
-      id: 4,
-      title: 'Blockchain Supply Chain Solution',
-      company: 'ChainTech Corp',
-      companyLogo: '⛓️',
-      description: 'Develop a blockchain-based solution for supply chain transparency and traceability.',
-      category: 'Web Development',
-      difficulty: 'Advanced',
-      duration: '10-14 weeks',
-      budget: '₹70,000 - ₹1,00,000',
-      skills: ['Solidity', 'Web3', 'React', 'Smart Contracts'],
-      applicants: 18,
-      deadline: '2024-03-01',
-      location: 'Remote',
-      featured: false,
-      verified: true,
-      requirements: 'Blockchain development experience, understanding of supply chain processes'
-    }
-  ];
-
-  const companies = [
-    {
-      name: 'TechCorp Solutions',
-      logo: '🏢',
-      industry: 'Technology',
-      size: '500-1000 employees',
-      location: 'Bangalore, India',
-      description: 'Leading software development company specializing in enterprise solutions.',
-      projects: 12,
-      rating: 4.8,
-      verified: true
-    },
-    {
-      name: 'MediTech Innovations',
-      logo: '🏥',
-      industry: 'Healthcare',
-      size: '200-500 employees',
-      location: 'Mumbai, India',
-      description: 'Healthcare technology company focused on digital health solutions.',
-      projects: 8,
-      rating: 4.9,
-      verified: true
-    },
-    {
-      name: 'DataFlow Systems',
-      logo: '📊',
-      industry: 'Analytics',
-      size: '100-200 employees',
-      location: 'Hyderabad, India',
-      description: 'Data analytics and business intelligence solutions provider.',
-      projects: 15,
-      rating: 4.7,
-      verified: true
-    }
-  ];
+  const filteredProjects = projects.filter(
+    (project) => selectedCategory === "All" || project.category === selectedCategory
+  );
 
   const partnershipBenefits = [
     {
@@ -173,13 +69,10 @@ const Companies = () => {
     }
   ];
 
-  const filteredProjects = projects.filter(project => 
-    selectedCategory === 'All' || project.category === selectedCategory
-  );
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
       {/* Hero Section */}
+      {loading && <div className="text-center py-4">Loading...</div>}
       <section className="py-16 bg-gradient-warm relative overflow-hidden">
         <div className="absolute inset-0 bg-gray-800"></div>
         <div className="container mx-auto px-4 relative z-10">
@@ -193,7 +86,7 @@ const Companies = () => {
             
             {/* Toggle Buttons */}
             <div className="flex justify-center mb-8">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-2 flex">
+              <div className="bg-white/10 backdrop-blur-sm rounded p-2 flex">
                 <button
                   onClick={() => setSelectedTab('projects')}
                   className={`px-6 py-3 rounded transition-all ${
@@ -228,7 +121,7 @@ const Companies = () => {
       {selectedTab === 'projects' ? (
         <>
           {/* Search & Filter */}
-          <section className="py-8 bg-muted/30">
+          <section className="py-8 bg-muted/30 ">
             <div className="container mx-auto px-4">
               <div className="max-w-4xl mx-auto">
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -240,7 +133,7 @@ const Companies = () => {
                       className="w-full pl-12 pr-4 py-3 rounded border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
-                  <button className="px-6 py-3 bg-blue-700 text-white rounded font-semibold hover:bg-blue-700-glow transition-colors">
+                  <button className="px-6 py-2 flex items-center bg-blue-700 text-white font-semibold hover:bg-blue-700-glow transition-colors">
                     <FaFilter className="mr-2" />
                     Filter
                   </button>
@@ -252,7 +145,7 @@ const Companies = () => {
                     <button
                       key={index}
                       onClick={() => setSelectedCategory(category.name)}
-                      className={`px-4 py-2 rounded-full transition-all duration-300 ${
+                      className={`px-4 bg-gray-100 py-2 rounded-full transition-all duration-300 ${
                         selectedCategory === category.name
                           ? 'bg-blue-700 text-white shadow-soft'
                           : 'bg-card border border-border hover:border-primary/50'

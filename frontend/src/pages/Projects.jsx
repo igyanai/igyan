@@ -146,7 +146,7 @@ const StudentProjects = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-100">
 
       {/* Hero Section */}
       <section className="py-16 bg-gradient-cool relative overflow-hidden">
@@ -202,7 +202,7 @@ const StudentProjects = () => {
               <button
                 key={index}
                 onClick={() => setSelectedCategory(category.name)}
-                className={`px-4 py-2 rounded-full transition-all duration-300 ${
+                className={`px-4 py-2 bg-gray-700 text-gray-200 rounded-full transition-all duration-300 ${
                   selectedCategory === category.name
                     ? 'bg-blue-700 text-whiteshadow-soft'
                     : 'bg-card border border-border hover:border-primary/50'
