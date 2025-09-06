@@ -1,12 +1,11 @@
 const express = require('express');
-const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
-const User = require('../models/userModel');
-const { auth, optionalAuth } = require('../middleware/authMiddleware');
-const { sendEmail } = require('../utils/email');
-const authController = require('../controllers/authController');
+const User = require('../../models/userModel');
+const { auth, optionalAuth } = require('../../middleware/authMiddleware');
+const { sendEmail } = require('../../utils/email');
+const { setAuthCookies, clearAuthCookies } = require('../../utils/authUtils');
 
 const router = express.Router();
 
@@ -43,9 +42,22 @@ const registerValidation = [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
   
-  body('userType')
-    .isIn(['learner', 'mentor'])
-    .withMessage('User type must be either learner or mentor'),
+  body('university')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('University name must be between 2 and 100 characters'),
+  
+  body('course')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Course name must be between 2 and 100 characters'),
+  
+  body('year')
+    .optional()
+    .isInt({ min: 1, max: 6 })
+    .withMessage('Year must be between 1 and 6'),
   
   body('agreedToTerms')
     .isBoolean()
@@ -65,49 +77,9 @@ const loginValidation = [
     .withMessage('Password is required')
 ];
 
-const forgotPasswordValidation = [
-  body('email')
-    .trim()
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please provide a valid email')
-];
-
-const resetPasswordValidation = [
-  body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number')
-];
-
-// Helper function to set auth cookies
-const setAuthCookies = (res, accessToken, refreshToken) => {
-  const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  };
-
-  res.cookie('accessToken', accessToken, {
-    ...cookieOptions,
-    maxAge: 15 * 60 * 1000, 
-  });
-
-  res.cookie('refreshToken', refreshToken, {
-    ...cookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000, 
-  });
-};
-
-const clearAuthCookies = (res) => {
-  res.clearCookie('accessToken');
-  res.clearCookie('refreshToken');
-};
-
-router.post('/register',registerValidation, authController.register, async (req, res, next) => {
+// Learner Registration
+router.post('/register', registerValidation, async (req, res, next) => {
   try {
-    // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -117,7 +89,7 @@ router.post('/register',registerValidation, authController.register, async (req,
       });
     }
 
-    const { name, email, password, userType, agreedToTerms } = req.body;
+    const { name, email, password, university, course, year, skills, portfolio, github, linkedin, bio, agreedToTerms } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -129,12 +101,20 @@ router.post('/register',registerValidation, authController.register, async (req,
       });
     }
 
-    // Create user
+    // Create learner
     const user = new User({
       name,
       email,
       password,
-      userType,
+      userType: 'learner',
+      university,
+      course,
+      year,
+      skills: skills || [],
+      portfolio,
+      github,
+      linkedin,
+      bio,
       agreedToTerms
     });
 
@@ -151,24 +131,16 @@ router.post('/register',registerValidation, authController.register, async (req,
         template: 'emailVerification',
         context: {
           name: user.name,
-          verificationUrl: `${process.env.FRONTEND_URL}/verify-email/${emailVerificationToken}`
+          verificationUrl: `${process.env.BACKEND_URL}/api/auth/learner/verify-email/${emailVerificationToken}`
         }
       });
     } catch (emailError) {
       console.error('Error sending verification email:', emailError);
-      // Don't fail registration if email fails
     }
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Please check your email to verify your account.',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        userType: user.userType,
-        isEmailVerified: user.isEmailVerified
-      }
+      message: 'Learner registration successful! Please check your email to verify your account.',
     });
 
   } catch (error) {
@@ -176,7 +148,8 @@ router.post('/register',registerValidation, authController.register, async (req,
   }
 });
 
-router.post('/login',loginValidation,authController.login, async (req, res, next) => {
+// Learner Login
+router.post('/login', loginValidation, async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -189,8 +162,8 @@ router.post('/login',loginValidation,authController.login, async (req, res, next
 
     const { email, password } = req.body;
 
-    // Find user and include password for comparison
-    const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
+    // Find learner and include password for comparison
+    const user = await User.findOne({ email, userType: 'learner' }).select('+password +loginAttempts +lockUntil');
     
     if (!user) {
       return res.status(401).json({
@@ -211,9 +184,7 @@ router.post('/login',loginValidation,authController.login, async (req, res, next
     const isMatch = await user.comparePassword(password);
     
     if (!isMatch) {
-      // Increment login attempts
       await user.incLoginAttempts();
-      
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -247,22 +218,6 @@ router.post('/login',loginValidation,authController.login, async (req, res, next
     // Set cookies
     setAuthCookies(res, accessToken, refreshToken);
 
-    // Check if email verification is needed
-    if (!user.isEmailVerified) {
-      return res.json({
-        success: true,
-        message: 'Login successful! Please verify your email to access all features.',
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          userType: user.userType,
-          isEmailVerified: user.isEmailVerified
-        },
-        needsEmailVerification: true
-      });
-    }
-
     res.json({
       success: true,
       message: 'Login successful!',
@@ -271,8 +226,19 @@ router.post('/login',loginValidation,authController.login, async (req, res, next
         name: user.name,
         email: user.email,
         userType: user.userType,
+        university: user.university,
+        course: user.course,
+        year: user.year,
+        skills: user.skills,
+        portfolio: user.portfolio,
+        github: user.github,
+        linkedin: user.linkedin,
+        bio: user.bio,
         isEmailVerified: user.isEmailVerified,
         avatar: user.avatar,
+        rating: user.rating,
+        totalReviews: user.totalReviews,
+        projectsCompleted: user.projectsCompleted,
         lastLogin: user.lastLogin
       }
     });
@@ -282,129 +248,14 @@ router.post('/login',loginValidation,authController.login, async (req, res, next
   }
 });
 
-router.post('/logout', optionalAuth, async (req, res, next) => {
-  try {
-    // If user is authenticated, remove refresh token
-    if (req.user && req.refreshToken) {
-      const user = await User.findById(req.user.id);
-      if (user) {
-        await user.removeRefreshToken(req.refreshToken);
-      }
-    }
-
-    // Clear cookies
-    clearAuthCookies(res);
-
-    res.json({
-      success: true,
-      message: 'Logout successful'
-    });
-
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post('/refresh', async (req, res, next) => {
-  try {
-    const { refreshToken } = req.cookies;
-
-    if (!refreshToken) {
-      return res.status(401).json({
-        success: false,
-        message: 'No refresh token provided'
-      });
-    }
-
-    // Verify refresh token
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'your-jwt-refresh-secret');
-    
-    const user = await User.findById(decoded.id);
-    if (!user) {
-      clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    // Check if refresh token exists in user's tokens
-    const tokenExists = user.refreshTokens.some(rt => rt.token === refreshToken);
-    if (!tokenExists) {
-      clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid refresh token'
-      });
-    }
-
-    // Generate new tokens
-    const newAccessToken = user.generateAccessToken();
-    const newRefreshToken = user.generateRefreshToken();
-
-    // Replace old refresh token with new one
-    await user.removeRefreshToken(refreshToken);
-    await user.addRefreshToken(newRefreshToken);
-
-    // Set new cookies
-    setAuthCookies(res, newAccessToken, newRefreshToken);
-
-    res.json({
-      success: true,
-      message: 'Token refreshed successfully'
-    });
-
-  } catch (error) {
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-      clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid refresh token'
-      });
-    }
-    next(error);
-  }
-});
-
-router.get('/me', auth, async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        userType: user.userType,
-        isEmailVerified: user.isEmailVerified,
-        avatar: user.avatar,
-        bio: user.bio,
-        skills: user.skills,
-        experience: user.experience,
-        interests: user.interests,
-        location: user.location,
-        website: user.website,
-        social: user.social,
-        preferences: user.preferences,
-        lastLogin: user.lastLogin,
-        createdAt: user.createdAt
-      }
-    });
-
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post('/forgot-password', forgotPasswordLimiter, forgotPasswordValidation, async (req, res, next) => {
+// Forgot password
+router.post('/forgot-password', forgotPasswordLimiter, [
+  body('email')
+    .trim()
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email')
+], async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -416,10 +267,8 @@ router.post('/forgot-password', forgotPasswordLimiter, forgotPasswordValidation,
     }
 
     const { email } = req.body;
-
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, userType: 'learner' });
     
-    // Always return success to prevent email enumeration
     if (!user) {
       return res.json({
         success: true,
@@ -427,11 +276,9 @@ router.post('/forgot-password', forgotPasswordLimiter, forgotPasswordValidation,
       });
     }
 
-    // Generate password reset token
     const resetToken = user.generatePasswordResetToken();
     await user.save();
 
-    // Send reset email
     try {
       await sendEmail({
         to: user.email,
@@ -444,7 +291,6 @@ router.post('/forgot-password', forgotPasswordLimiter, forgotPasswordValidation,
       });
     } catch (emailError) {
       console.error('Error sending password reset email:', emailError);
-      // Clear the reset token if email fails
       user.passwordResetToken = undefined;
       user.passwordResetExpires = undefined;
       await user.save();
@@ -465,7 +311,14 @@ router.post('/forgot-password', forgotPasswordLimiter, forgotPasswordValidation,
   }
 });
 
-router.put('/reset-password/:token', strictAuthLimiter, resetPasswordValidation, async (req, res, next) => {
+// Reset password
+router.put('/reset-password/:token', strictAuthLimiter, [
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number')
+], async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -479,22 +332,18 @@ router.put('/reset-password/:token', strictAuthLimiter, resetPasswordValidation,
     const { token } = req.params;
     const { password } = req.body;
 
-    // Find user by reset token
     const user = await User.findByPasswordResetToken(token);
     
-    if (!user) {
+    if (!user || user.userType !== 'learner') {
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired password reset token'
       });
     }
 
-    // Set new password and clear reset token fields
     user.password = password;
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
-    
-    // Clear any account locks and login attempts
     user.loginAttempts = undefined;
     user.lockUntil = undefined;
     
@@ -510,61 +359,48 @@ router.put('/reset-password/:token', strictAuthLimiter, resetPasswordValidation,
   }
 });
 
+// Verify email
 router.get('/verify-email/:token', async (req, res, next) => {
   try {
     const { token } = req.params;
 
-    // Find user by verification token
     const user = await User.findByEmailVerificationToken(token);
     
-    if (!user) {
+    if (!user || user.userType !== 'learner') {
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired email verification token'
       });
     }
 
-    // Mark email as verified and clear verification token
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
     
     await user.save();
 
-    // Generate new tokens for auto-login after verification
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
     await user.addRefreshToken(refreshToken);
     
-    // Set cookies
     setAuthCookies(res, accessToken, refreshToken);
 
-    res.json({
-      success: true,
-      message: 'Email verified successfully! You are now logged in.',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        userType: user.userType,
-        isEmailVerified: user.isEmailVerified,
-        avatar: user.avatar
-      }
-    });
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?emailVerified=1&role=${user.userType}`);
 
   } catch (error) {
     next(error);
   }
 });
 
-router.post('/resend-verification',authController.resendVerificationEmail, async (req, res, next) => {
+// Resend verification email
+router.post('/resend-verification', auth, async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findOne({ _id: req.user.id, userType: 'learner' });
     
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'Learner not found'
       });
     }
 
@@ -575,11 +411,9 @@ router.post('/resend-verification',authController.resendVerificationEmail, async
       });
     }
 
-    // Generate new verification token
     const emailVerificationToken = user.generateEmailVerificationToken();
     await user.save();
 
-    // Send verification email
     try {
       await sendEmail({
         to: user.email,
@@ -587,7 +421,7 @@ router.post('/resend-verification',authController.resendVerificationEmail, async
         template: 'emailVerification',
         context: {
           name: user.name,
-          verificationUrl: `${process.env.FRONTEND_URL}/verify-email/${emailVerificationToken}`
+          verificationUrl: `${process.env.BACKEND_URL}/api/auth/learner/verify-email/${emailVerificationToken}`
         }
       });
     } catch (emailError) {
@@ -608,6 +442,7 @@ router.post('/resend-verification',authController.resendVerificationEmail, async
   }
 });
 
+// Change password
 router.put('/change-password', auth, [
   body('currentPassword')
     .notEmpty()
@@ -630,16 +465,15 @@ router.put('/change-password', auth, [
 
     const { currentPassword, newPassword } = req.body;
 
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await User.findOne({ _id: req.user.id, userType: 'learner' }).select('+password');
     
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'Learner not found'
       });
     }
 
-    // Check if user has a password (not OAuth user)
     if (!user.password) {
       return res.status(400).json({
         success: false,
@@ -647,7 +481,6 @@ router.put('/change-password', auth, [
       });
     }
 
-    // Verify current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(400).json({
@@ -656,7 +489,6 @@ router.put('/change-password', auth, [
       });
     }
 
-    // Set new password
     user.password = newPassword;
     await user.save();
 
@@ -669,39 +501,5 @@ router.put('/change-password', auth, [
     next(error);
   }
 });
-
-router.get('/google', 
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
-
-router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login?error=oauth_failed` }),
-  async (req, res, next) => {
-    try {
-      const user = req.user;
-
-      // Generate tokens
-      const accessToken = user.generateAccessToken();
-      const refreshToken = user.generateRefreshToken();
-
-      // Store refresh token
-      await user.addRefreshToken(refreshToken);
-
-      // Update last login
-      user.lastLogin = new Date();
-      await user.save();
-
-      // Set cookies
-      setAuthCookies(res, accessToken, refreshToken);
-
-      // Redirect to frontend with success indicator
-      res.redirect(`${process.env.FRONTEND_URL}/?googleAuth=success`);
-
-    } catch (error) {
-      console.error('Google OAuth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_error`);
-    }
-  }
-);
 
 module.exports = router;

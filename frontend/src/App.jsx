@@ -17,6 +17,8 @@ import NotFound from "./pages/NotFound";
 
 import ProtectedRoute from "./components/HeroSection/ProtectedRoute";
 import Dashboard from "./components/Dashboard";
+import { CompanyAuthProvider } from "./context/CompanyAuthContext";
+import CompanyLoginModal from "./components/CompanyLoginModal";
 
 function AppContent() {
   const location = useLocation();
@@ -25,6 +27,7 @@ function AppContent() {
     <div className="min-h-screen transition-colors duration-300 bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
       <Navbar />
       <LoginModal />
+      <CompanyLoginModal/>
 
       <Routes>
         <Route path="/" element={<Homepage />} />
@@ -56,9 +59,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        
+        <CompanyAuthProvider>
           <AppContent />
-        
+        </CompanyAuthProvider>
       </AuthProvider>
     </ThemeProvider>
   );

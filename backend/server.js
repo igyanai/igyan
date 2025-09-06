@@ -11,8 +11,13 @@ const fetch = require('node-fetch');
 require('dotenv').config();
 
 // Import routes
-const authRoutes = require('./routes/authRoutes');
+const authRoutes = require('./routes/auth/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const companyRoutes = require('./routes/companies');
+const projectRoutes = require('./routes/projects');
+const submissionRoutes = require('./routes/submissions');
+const reviewRoutes = require('./routes/reviews');
+const partnershipRoutes = require('./routes/partnership');
 
 const app = express();
 
@@ -90,6 +95,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/igyan-ai'
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/company', companyRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/submissions', submissionRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/partnership', partnershipRoutes);
 
 const OpenAI = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
