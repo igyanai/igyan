@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProjects } from '../redux/slices/projectSlice.js';
 import {
   FaCode,
   FaDesktop,
@@ -20,123 +22,25 @@ import {
 import { Link } from 'react-router-dom';
 
 const StudentProjects = () => {
+  const dispatch = useDispatch();
+  const { projects, status, error } = useSelector((state) => state.projects);
+
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
   const categories = [
-    { name: 'All', count: 156, emoji: '🎯' },
-    { name: 'Web Development', count: 45, emoji: '🌐' },
-    { name: 'Mobile Apps', count: 32, emoji: '📱' },
-    { name: 'AI/ML', count: 28, emoji: '🤖' },
-    { name: 'Data Science', count: 24, emoji: '📊' },
-    { name: 'Game Development', count: 19, emoji: '🎮' },
-    { name: 'Design', count: 35, emoji: '🎨' }
+    { name: 'All', emoji: '🎯' },
+    { name: 'Web Development', emoji: '🌐' },
+    { name: 'Mobile Apps', emoji: '📱' },
+    { name: 'AI/ML', emoji: '🤖' },
+    { name: 'Data Science', emoji: '📊' },
+    { name: 'Game Development', emoji: '🎮' },
+    { name: 'Design', emoji: '🎨' }
   ];
 
-  const projects = [
-    {
-      id: 1,
-      title: 'AI-Powered E-commerce Platform',
-      description: 'A complete e-commerce solution with AI-driven product recommendations and smart inventory management.',
-      author: 'Priya Sharma',
-      authorAvatar: '👩‍💻',
-      category: 'Web Development',
-      tags: ['React', 'Node.js', 'AI', 'MongoDB'],
-      image: '🛒',
-      likes: 234,
-      views: 1420,
-      comments: 45,
-      rating: 4.8,
-      featured: true,
-      liveUrl: '#',
-      githubUrl: '#'
-    },
-    {
-      id: 2,
-      title: 'Mental Health Support Chatbot',
-      description: 'An empathetic AI chatbot providing 24/7 mental health support and resources.',
-      author: 'Rahul Patel',
-      authorAvatar: '👨‍💻',
-      category: 'AI/ML',
-      tags: ['Python', 'NLP', 'TensorFlow', 'Flask'],
-      image: '🧠',
-      likes: 189,
-      views: 856,
-      comments: 32,
-      rating: 4.9,
-      featured: true,
-      liveUrl: '#',
-      githubUrl: '#'
-    },
-    {
-      id: 3,
-      title: 'Smart City Traffic Management',
-      description: 'IoT-based traffic optimization system using real-time data and predictive analytics.',
-      author: 'Ananya Gupta',
-      authorAvatar: '👩‍🔬',
-      category: 'Data Science',
-      tags: ['Python', 'IoT', 'Machine Learning', 'APIs'],
-      image: '🚦',
-      likes: 156,
-      views: 743,
-      comments: 28,
-      rating: 4.7,
-      featured: false,
-      liveUrl: '#',
-      githubUrl: '#'
-    },
-    {
-      id: 4,
-      title: 'Virtual Reality Learning Platform',
-      description: 'Immersive VR experiences for interactive learning in science and history.',
-      author: 'Arjun Singh',
-      authorAvatar: '👨‍🎓',
-      category: 'Game Development',
-      tags: ['Unity', 'C#', 'VR', 'Educational'],
-      image: '🥽',
-      likes: 298,
-      views: 1890,
-      comments: 67,
-      rating: 4.9,
-      featured: true,
-      liveUrl: '#',
-      githubUrl: '#'
-    },
-    {
-      id: 5,
-      title: 'Eco-Friendly Habit Tracker',
-      description: 'Mobile app gamifying sustainable living with community challenges and rewards.',
-      author: 'Kavya Nair',
-      authorAvatar: '👩‍🌾',
-      category: 'Mobile Apps',
-      tags: ['React Native', 'Firebase', 'Gamification'],
-      image: '🌱',
-      likes: 167,
-      views: 923,
-      comments: 41,
-      rating: 4.6,
-      featured: false,
-      liveUrl: '#',
-      githubUrl: '#'
-    },
-    {
-      id: 6,
-      title: 'Blockchain Voting System',
-      description: 'Secure, transparent voting platform using blockchain technology.',
-      author: 'Dev Kumar',
-      authorAvatar: '👨‍💼',
-      category: 'Web Development',
-      tags: ['Solidity', 'Web3', 'React', 'Ethereum'],
-      image: '🗳️',
-      likes: 203,
-      views: 1156,
-      comments: 52,
-      rating: 4.8,
-      featured: false,
-      liveUrl: '#',
-      githubUrl: '#'
-    }
-  ];
+  useEffect(() => {
+    dispatch(fetchProjects());
+  }, [dispatch]);
 
   const filteredProjects = projects.filter(project => {
     const matchesCategory = selectedCategory === 'All' || project.category === selectedCategory;
@@ -210,7 +114,6 @@ const StudentProjects = () => {
               >
                 <span className="mr-2">{category.emoji}</span>
                 {category.name}
-                <span className="ml-2 text-xs opacity-70">({category.count})</span>
               </button>
             ))}
           </div>
@@ -236,7 +139,7 @@ const StudentProjects = () => {
                   <div className="p-6">
                     {/* Project Image/Icon */}
                     <div className="text-6xl text-center mb-4 group-hover:scale-110 transition-transform">
-                      {project.image}
+                      {project.companyLogo || project.image}
                     </div>
 
                     {/* Project Info */}
@@ -247,18 +150,18 @@ const StudentProjects = () => {
                       {project.description}
                     </p>
 
-                    {/* Author */}
+                    {/* Author / Company */}
                     <div className="flex items-center space-x-3 mb-4">
-                      <div className="text-2xl">{project.authorAvatar}</div>
+                      <div className="text-2xl">{project.companyLogo || project.authorAvatar}</div>
                       <div>
-                        <div className="font-semibold text-sm">{project.author}</div>
+                        <div className="font-semibold text-sm">{project.company || project.author}</div>
                         <div className="text-xs text-muted-foreground">{project.category}</div>
                       </div>
                     </div>
 
-                    {/* Tags */}
+                    {/* Tags / Skills */}
                     <div className="flex flex-wrap gap-2 mb-4">
-                      {project.tags.slice(0, 3).map((tag, index) => (
+                      {(project.skills || project.tags || []).slice(0, 3).map((tag, index) => (
                         <span key={index} className="px-2 py-1 bg-blue-700/10 text-primary rounded-full text-xs">
                           {tag}
                         </span>
@@ -270,20 +173,20 @@ const StudentProjects = () => {
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-1">
                           <FaHeart className="text-red-500" />
-                          <span>{project.likes}</span>
+                          <span>{project.likes || project.applicants}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <FaEye />
-                          <span>{project.views}</span>
+                          <span>{project.views || ''}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <FaComment />
-                          <span>{project.comments}</span>
+                          <span>{project.comments || ''}</span>
                         </div>
                       </div>
                       <div className="flex items-center space-x-1">
                         <span className="text-yellow-500">⭐</span>
-                        <span className="font-semibold">{project.rating}</span>
+                        <span className="font-semibold">{project.rating || ''}</span>
                       </div>
                     </div>
 
@@ -314,7 +217,7 @@ const StudentProjects = () => {
                   <div className="p-6">
                     {/* Project Image/Icon */}
                     <div className="text-5xl text-center mb-4 group-hover:scale-110 transition-transform">
-                      {project.image}
+                      {project.companyLogo || project.image}
                     </div>
 
                     {/* Project Info */}
@@ -325,17 +228,17 @@ const StudentProjects = () => {
                       {project.description}
                     </p>
 
-                    {/* Author */}
+                    {/* Author / Company */}
                     <div className="flex items-center space-x-2 mb-3">
-                      <div className="text-xl">{project.authorAvatar}</div>
+                      <div className="text-xl">{project.companyLogo || project.authorAvatar}</div>
                       <div className="text-sm">
-                        <div className="font-semibold">{project.author}</div>
+                        <div className="font-semibold">{project.company || project.author}</div>
                       </div>
                     </div>
 
-                    {/* Tags */}
+                    {/* Tags / Skills */}
                     <div className="flex flex-wrap gap-1 mb-3">
-                      {project.tags.slice(0, 2).map((tag, index) => (
+                      {(project.skills || project.tags || []).slice(0, 2).map((tag, index) => (
                         <span key={index} className="px-2 py-1 bg-muted text-xs rounded-full">
                           {tag}
                         </span>
@@ -347,16 +250,16 @@ const StudentProjects = () => {
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-1">
                           <FaThumbsUp />
-                          <span>{project.likes}</span>
+                          <span>{project.likes || ''}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <FaEye />
-                          <span>{project.views}</span>
+                          <span>{project.views || ''}</span>
                         </div>
                       </div>
                       <div className="flex items-center space-x-1">
                         <span>⭐</span>
-                        <span>{project.rating}</span>
+                        <span>{project.rating || ''}</span>
                       </div>
                     </div>
                   </div>
