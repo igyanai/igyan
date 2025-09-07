@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchMentors } from '../redux/slices/mentorSlice.js';
 import { PopupWidget } from 'react-calendly';
 import {
   FaGraduationCap,
@@ -24,20 +26,27 @@ import {
 import { Link } from 'react-router-dom';
 
 const Mentor = () => {
+  const dispatch = useDispatch();
+  const { mentors, status, error } = useSelector((state) => state.mentors);
+
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [viewMode, setViewMode] = useState('find'); // 'find' or 'apply'
   const [calendlyOpen, setCalendlyOpen] = useState(false);
   const [selectedMentorUrl, setSelectedMentorUrl] = useState('');
 
+  useEffect(() => {
+    dispatch(fetchMentors());
+  }, [dispatch]);
+
   const categories = [
-    { name: 'All', count: 128, emoji: '🎯' },
-    { name: 'Technology', count: 45, emoji: '💻' },
-    { name: 'Business', count: 32, emoji: '💼' },
-    { name: 'Design', count: 28, emoji: '🎨' },
-    { name: 'Marketing', count: 23, emoji: '📈' }
+    { name: 'All', count: mentorsData.length, emoji: '🎯' },
+    { name: 'Technology', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('react') || skill.toLowerCase().includes('node') || skill.toLowerCase().includes('python'))).length, emoji: '💻' },
+    { name: 'Business', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('product') || skill.toLowerCase().includes('strategy'))).length, emoji: '💼' },
+    { name: 'Design', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('design') || skill.toLowerCase().includes('ui') || skill.toLowerCase().includes('ux'))).length, emoji: '🎨' },
+    { name: 'Marketing', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('marketing') || skill.toLowerCase().includes('data'))).length, emoji: '📈' }
   ];
 
-  const mentors = [
+  const defaultMentors = [
     {
       id: 1,
       name: 'Dr. Priya Sharma',
@@ -144,7 +153,9 @@ const Mentor = () => {
     }
   ];
 
-  const filteredMentors = mentors.filter(mentor =>
+  const mentorsData = mentors.length > 0 ? mentors : defaultMentors;
+
+  const filteredMentors = mentorsData.filter(mentor =>
     selectedCategory === 'All' || mentor.expertise.some(skill =>
       skill.toLowerCase().includes(selectedCategory.toLowerCase())
     )
@@ -154,6 +165,35 @@ const Mentor = () => {
     setSelectedMentorUrl(url);
     setCalendlyOpen(true);
   };
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-800 mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600">Loading mentors...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Failed to Load Mentors</h2>
+          <p className="text-gray-600 mb-4">{error || 'Something went wrong while fetching mentors.'}</p>
+          <button
+            onClick={() => dispatch(fetchMentors())}
+            className="bg-blue-800 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">

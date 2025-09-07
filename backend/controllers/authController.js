@@ -1,12 +1,13 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const User = require('../models/userModel');
+const User = require('../models/userModel.js');
 const { sendEmail } = require('../utils/email'); 
 
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    console.log("req.body:", req.body);
     const normalizedEmail = email.toLowerCase().trim();
     let user = await User.findOne({ email });
     if (user) {
@@ -17,6 +18,7 @@ exports.register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
 
     const emailverificationToken = crypto.randomBytes(32).toString('hex');
 

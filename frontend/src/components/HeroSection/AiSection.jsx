@@ -134,7 +134,8 @@ const HeroSection = () => {
 
   return (
     <motion.section
-      className="relative py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
+    // style={{ fontFamily: "Orbitron" }}
+      className="relative orbitron py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
       initial="hidden"
       animate="visible"
       variants={heroVariants}

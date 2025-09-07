@@ -1,5 +1,5 @@
 // This file contains the business logic for the mentor API endpoints.
-const Mentor = require('../models/Mentor');
+const Mentor = require('../models/mentor.model.js');
 
 // Handler for getting all mentors
 exports.getAllMentors = async (req, res) => {

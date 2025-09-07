@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 // Using more AI/tech-themed icons from lucide-react
-import { Menu, X, User, LogOut, BrainCircuit } from 'lucide-react';
+import { Menu, X, User, BrainCircuit } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
@@ -18,12 +18,12 @@ const navItems = [
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { isLoggedIn, setShowLogin, user, logout, loading } = useAuth();
+  const { isLoggedIn, setShowLogin, user, loading } = useAuth();
 
   const closeMenu = () => setIsOpen(false);
   const handleAuth = () => {
     closeMenu();
-    isLoggedIn ? logout() : setShowLogin(true);
+    setShowLogin(true);
   };
 
   // Don't render navbar while loading
@@ -63,7 +63,7 @@ const Navbar = () => {
               <NavLink
                 key={name}
                 to={path}
-                className="group relative text-gray-600 font-medium font-semibold text-md tracking-wide uppercase transition-all duration-300 hover:text-blue-400"
+                className="group relative text-gray-600 font-semibold text-md tracking-wide uppercase transition-all duration-300 hover:text-blue-400"
               >
                 {({ isActive }) => (
                   <>
@@ -84,7 +84,7 @@ const Navbar = () => {
             {isLoggedIn ? (
               <div className="hidden sm:flex items-center gap-2">
                 <NavLink
-                  to="/dashboard/me" 
+                  to="/dashboard/me"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors">
                   <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                     {user?.avatar ? (
@@ -97,13 +97,6 @@ const Navbar = () => {
                     {user?.name || 'User'}
                   </span>
                 </NavLink>
-                <button
-                  onClick={handleAuth}
-                  className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-red-400 bg-red-900/20 hover:bg-red-900/30 rounded-full border border-red-900/50 transition-colors"
-                >
-                  <LogOut className="w-3 h-3" />
-                  <span className="hidden md:inline">Logout</span>
-                </button>
               </div>
             ) : (
               <button
@@ -164,13 +157,6 @@ const Navbar = () => {
                       {user?.name || 'User'}
                     </span>
                   </NavLink>
-                  <button
-                    onClick={handleAuth}
-                    className="w-full flex items-center justify-center gap-2 p-3 text-sm font-medium text-red-400 bg-red-900/20 hover:bg-red-900/30 rounded-lg border border-red-900/50 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
-                  </button>
                 </div>
               ) : (
                 <button
