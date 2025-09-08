@@ -88,7 +88,7 @@ const useFormState = (validateField) => {
     setFormData(prev => ({ ...prev, [name]: value }));
 
     // Clear success message when user starts typing
-    if (successMessage && !isSignUp) setSuccessMessage('');
+    if (successMessage) setSuccessMessage('');
 
     // Real-time validation
     if (errors[name]) {
@@ -96,7 +96,7 @@ const useFormState = (validateField) => {
       setErrors(prev => ({ ...prev, [name]: error }));
     }
   };
-
+  
 
   const toggleMode = () => {
     setIsSignUp(prev => !prev);
@@ -127,7 +127,7 @@ const useFormState = (validateField) => {
   return {
     isSignUp, setIsSignUp, isForgotPassword, setIsForgotPassword,
     showPassword, setShowPassword, userType, setUserType,
-    formData, errors, setErrors, isLoading, setIsLoading,
+    formData, errors, setErrors, isLoading, setIsLoading, 
     agreedToTerms, setAgreedToTerms, successMessage, setSuccessMessage,
     handleInputChange, toggleMode, toggleForgotPassword, resetForm
   };
@@ -212,8 +212,8 @@ const UserTypeSelector = ({ userType, setUserType, disabled = false }) => {
             onClick={() => setUserType(value)}
             disabled={disabled}
             className={`p-3 rounded border transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed ${userType === value
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
           >
             <div className="flex items-center space-x-2 mb-1">
@@ -315,7 +315,7 @@ const LoginModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
     if (formDisabled) return;
 
     if (isForgotPassword) {
@@ -383,11 +383,8 @@ const LoginModal = () => {
           setErrors({ submit: result.message });
         }
       } else {
-        if (isSignUp) {
-          setSuccessMessage(result.message || "Registration successful! Please verify your email.");
-        } else {
-          resetForm();
-        }
+        // Success - modal will be closed by auth context
+        resetForm();
       }
     } catch (error) {
       console.error('Login/Register error:', error);
@@ -399,11 +396,10 @@ const LoginModal = () => {
 
   const handleGoogleLogin = () => {
     if (!formDisabled) {
-      console.log('[LOGIN MODAL] Google login clicked with role:', userType);
-      loginWithGoogle(userType);
+      console.log('[LOGIN MODAL] Google login clicked');
+      loginWithGoogle();
     }
   };
-
 
   const handleClose = () => {
     if (!formDisabled) {
@@ -463,10 +459,10 @@ const LoginModal = () => {
             {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
           </h3>
           <p className="text-blue-100 text-center text-sm">
-            {isForgotPassword
+            {isForgotPassword 
               ? 'Enter your email to receive a reset link'
-              : isSignUp
-                ? 'Join thousands of learners today'
+              : isSignUp 
+                ? 'Join thousands of learners today' 
                 : 'Sign in to continue your learning journey'
             }
           </p>
@@ -477,11 +473,7 @@ const LoginModal = () => {
           {!isForgotPassword && (
             <UserTypeSelector
               userType={userType}
-              setUserType={(role) => {
-                setUserType(role);
-
-                window.currentSelectedRole = role;
-              }}
+              setUserType={setUserType}
               disabled={formDisabled}
             />
           )}
@@ -553,10 +545,10 @@ const LoginModal = () => {
             </div>
           )}
 
-          <SubmitButton
-            isLoading={formDisabled}
-            isSignUp={isSignUp}
-            isForgotPassword={isForgotPassword}
+          <SubmitButton 
+            isLoading={formDisabled} 
+            isSignUp={isSignUp} 
+            isForgotPassword={isForgotPassword} 
           />
 
           {!isForgotPassword && (
@@ -588,7 +580,7 @@ const LoginModal = () => {
                     {isSignUp ? 'Sign In' : 'Sign Up'}
                   </button>
                 </p>
-
+                
                 {!isSignUp && (
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Forgot your password?

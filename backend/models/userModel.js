@@ -109,7 +109,8 @@ const userSchema = new mongoose.Schema({
       expires: 604800 
     }
   }],
-
+  
+  // Account status
   isActive: {
     type: Boolean,
     default: true
@@ -120,7 +121,8 @@ const userSchema = new mongoose.Schema({
     default: 0
   },
   lockUntil: Date,
-
+  
+  // Preferences
   preferences: {
     notifications: {
       email: {
@@ -141,6 +143,7 @@ const userSchema = new mongoose.Schema({
     }
   },
 
+  // Terms acceptance
   agreedToTerms: {
     type: Boolean,
     required: true,
@@ -215,6 +218,7 @@ userSchema.methods.generateAccessToken = function() {
   );
 };
 
+// Method to generate refresh token
 userSchema.methods.generateRefreshToken = function() {
   return jwt.sign(
     { id: this._id },
@@ -223,6 +227,7 @@ userSchema.methods.generateRefreshToken = function() {
   );
 };
 
+// Method to generate email verification token
 userSchema.methods.generateEmailVerificationToken = function() {
   const token = crypto.randomBytes(32).toString('hex');
   this.emailVerificationToken = crypto
@@ -234,6 +239,7 @@ userSchema.methods.generateEmailVerificationToken = function() {
   return token;
 };
 
+// Method to generate password reset token
 userSchema.methods.generatePasswordResetToken = function() {
   const token = crypto.randomBytes(32).toString('hex');
   this.passwordResetToken = crypto
@@ -245,6 +251,7 @@ userSchema.methods.generatePasswordResetToken = function() {
   return token;
 };
 
+// Method to handle login attempts and account locking
 userSchema.methods.incLoginAttempts = function() {
  
   if (this.lockUntil && this.lockUntil < Date.now()) {
@@ -255,7 +262,8 @@ userSchema.methods.incLoginAttempts = function() {
   }
   
   const updates = { $inc: { loginAttempts: 1 } };
-
+  
+  // If we've reached max attempts and it's not locked already, lock the account
   if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
     updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; 
   }
@@ -263,15 +271,18 @@ userSchema.methods.incLoginAttempts = function() {
   return this.updateOne(updates);
 };
 
+// Method to reset login attempts
 userSchema.methods.resetLoginAttempts = function() {
   return this.updateOne({
     $unset: { loginAttempts: 1, lockUntil: 1 }
   });
 };
 
+// Method to add refresh token
 userSchema.methods.addRefreshToken = async function(refreshToken) {
   this.refreshTokens.push({ token: refreshToken });
   
+  // Keep only the last 5 refresh tokens
   if (this.refreshTokens.length > 5) {
     this.refreshTokens = this.refreshTokens.slice(-5);
   }
@@ -279,11 +290,13 @@ userSchema.methods.addRefreshToken = async function(refreshToken) {
   await this.save();
 };
 
+// Method to remove refresh token
 userSchema.methods.removeRefreshToken = async function(refreshToken) {
   this.refreshTokens = this.refreshTokens.filter(rt => rt.token !== refreshToken);
   await this.save();
 };
 
+// Static method to find user by reset token
 userSchema.statics.findByPasswordResetToken = function(token) {
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
   
@@ -293,6 +306,7 @@ userSchema.statics.findByPasswordResetToken = function(token) {
   });
 };
 
+// Static method to find user by email verification token
 userSchema.statics.findByEmailVerificationToken = function(token) {
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
   

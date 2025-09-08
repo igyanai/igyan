@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import { FaRobot, FaSearch, FaCheckCircle } from 'react-icons/fa';
 import { IoIosSend } from "react-icons/io";
@@ -134,7 +135,8 @@ const HeroSection = () => {
 
   return (
     <motion.section
-      className="relative py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
+    // style={{ fontFamily: "Orbitron" }}
+      className="relative orbitron py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
       initial="hidden"
       animate="visible"
       variants={heroVariants}

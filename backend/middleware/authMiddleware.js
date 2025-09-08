@@ -1,204 +1,130 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
-const Company = require('../models/company');
-const { clearAuthCookies } = require('../utils/authUtils');
 
 const auth = async (req, res, next) => {
   try {
-    let token = null;
-
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    } else if (req.cookies && req.cookies.accessToken) {
-      token = req.cookies.accessToken;
+    let token = req.cookies?.accessToken;
+    
+    if (!token && req.headers.authorization) {
+      const authHeader = req.headers.authorization;
+      if (authHeader.startsWith('Bearer ')) {
+        token = authHeader.slice(7);
+      }
     }
 
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Access token is required'
+        message: 'Access denied. No token provided.'
       });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-    
-    let user = null;
-
-    if (decoded.userId) {
-      // User token (learner or mentor)
-      user = await User.findById(decoded.userId);
-      if (user) {
-        req.user = {
-          id: user._id,
-          type: 'user',
-          userType: user.userType,
-          email: user.email,
-          isEmailVerified: user.isEmailVerified,
-          isActive: user.isActive
-        };
-      }
-    } else if (decoded.companyId) {
-      // Company token
-      const company = await Company.findById(decoded.companyId);
-      if (company) {
-        req.user = {
-          id: company._id,
-          companyId: company._id,
-          type: 'company',
-          email: company.email,
-          isEmailVerified: company.isEmailVerified,
-          isApproved: company.isApproved,
-          isActive: company.isActive
-        };
-        user = company;
-      }
-    }
-
-    if (!user) {
-      clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token - user not found'
-      });
-    }
-
-    if (!user.isActive) {
-      clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: 'Account has been deactivated'
-      });
-    }
-
-    if (req.user.type === 'company' && !user.isApproved) {
-      if (!req.route.path.includes('approval-status') && !req.route.path.includes('logout')) {
-        return res.status(403).json({
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret');
+ 
+      const user = await User.findById(decoded.id);
+      
+      if (!user) {
+        return res.status(401).json({
           success: false,
-          message: 'Company account is pending approval'
+          message: 'Token is valid but user not found'
         });
       }
-    }
 
-    if (req.cookies && req.cookies.refreshToken) {
-      req.refreshToken = req.cookies.refreshToken;
-    }
+      if (!user.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'Account has been deactivated'
+        });
+      }
 
-    next();
+      req.user = {
+        id: user._id,
+        email: user.email,
+        userType: user.userType,
+        isEmailVerified: user.isEmailVerified
+      };
+
+      req.refreshToken = req.cookies?.refreshToken;
+
+      next();
+
+    } catch (tokenError) {
+      if (tokenError.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          success: false,
+          message: 'Access token expired',
+          expired: true
+        });
+      }
+
+      if (tokenError.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid access token'
+        });
+      }
+
+      throw tokenError;
+    }
 
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token'
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: 'Token expired'
-      });
-    }
-
     console.error('Auth middleware error:', error);
     res.status(500).json({
       success: false,
-      message: 'Authentication error'
+      message: 'Server error during authentication'
     });
   }
 };
 
-// Optional authentication middleware (doesn't require authentication)
+// Optional authentication middleware (doesn't fail if no token)
 const optionalAuth = async (req, res, next) => {
   try {
-    let token = null;
-
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    } else if (req.cookies && req.cookies.accessToken) {
-      token = req.cookies.accessToken;
+    let token = req.cookies?.accessToken;
+    
+    if (!token && req.headers.authorization) {
+      const authHeader = req.headers.authorization;
+      if (authHeader.startsWith('Bearer ')) {
+        token = authHeader.slice(7);
+      }
     }
 
     if (!token) {
+      // No token provided, but that's okay for optional auth
+      req.refreshToken = req.cookies?.refreshToken;
       return next();
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-    
-    let user = null;
-
-    if (decoded.userId) {
-      user = await User.findById(decoded.userId);
-      if (user) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-jwt-secret');
+      const user = await User.findById(decoded.id);
+      
+      if (user && user.isActive) {
         req.user = {
           id: user._id,
-          type: 'user',
-          userType: user.userType,
           email: user.email,
-          isEmailVerified: user.isEmailVerified,
-          isActive: user.isActive
+          userType: user.userType,
+          isEmailVerified: user.isEmailVerified
         };
       }
-    } else if (decoded.companyId) {
-      const company = await Company.findById(decoded.companyId);
-      if (company) {
-        req.user = {
-          id: company._id,
-          companyId: company._id,
-          type: 'company',
-          email: company.email,
-          isEmailVerified: company.isEmailVerified,
-          isApproved: company.isApproved,
-          isActive: company.isActive
-        };
-        user = company;
-      }
-    }
 
-    if (req.cookies && req.cookies.refreshToken) {
-      req.refreshToken = req.cookies.refreshToken;
-    }
+      req.refreshToken = req.cookies?.refreshToken;
+      next();
 
-    next();
+    } catch (tokenError) {
+      // Token invalid or expired, but continue anyway for optional auth
+      req.refreshToken = req.cookies?.refreshToken;
+      next();
+    }
 
   } catch (error) {
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-      return next();
-    }
-
     console.error('Optional auth middleware error:', error);
-    next();
+    next(); 
   }
 };
 
-const authorize = (...allowedTypes) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
-
-    const userType = req.user.type === 'company' ? 'company' : req.user.userType;
-    
-    if (!allowedTypes.includes(userType)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Insufficient permissions'
-      });
-    }
-
-    next();
-  };
-};
-
-const requireVerification = (req, res, next) => {
+// Middleware to check if email is verified
+const requireEmailVerification = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -209,23 +135,117 @@ const requireVerification = (req, res, next) => {
   if (!req.user.isEmailVerified) {
     return res.status(403).json({
       success: false,
-      message: 'Email verification required'
-    });
-  }
-
-  if (req.user.type === 'company' && !req.user.isApproved) {
-    return res.status(403).json({
-      success: false,
-      message: 'Company approval required'
+      message: 'Email verification required to access this resource',
+      needsEmailVerification: true
     });
   }
 
   next();
 };
 
+// Middleware to check user type
+const requireUserType = (allowedTypes) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const userTypes = Array.isArray(allowedTypes) ? allowedTypes : [allowedTypes];
+    
+    if (!userTypes.includes(req.user.userType)) {
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. Required user type: ${userTypes.join(' or ')}`
+      });
+    }
+
+    next();
+  };
+};
+
+const authWithEmailVerification = [auth, requireEmailVerification];
+
+const authWithUserType = (allowedTypes) => [auth, requireUserType(allowedTypes)];
+
+const authWithEmailAndUserType = (allowedTypes) => [
+  auth, 
+  requireEmailVerification, 
+  requireUserType(allowedTypes)
+];
+
+const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required'
+    });
+  }
+
+  if (req.user.userType !== 'admin' && !req.user.isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required'
+    });
+  }
+
+  next();
+};
+
+const attempts = new Map();
+const createUserRateLimit = (windowMs, max) => {
+
+  return (req, res, next) => {
+    if (!req.user) {
+      return next(); 
+    }
+
+    const userId = req.user.id;
+    const now = Date.now();
+    const userAttempts = attempts.get(userId) || [];
+
+    // Remove expired attempts
+    const validAttempts = userAttempts.filter(timestamp => now - timestamp < windowMs);
+
+    if (validAttempts.length >= max) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many requests. Please try again later.'
+      });
+    }
+
+    // Add current attempt
+    validAttempts.push(now);
+    attempts.set(userId, validAttempts);
+
+    next();
+  };
+};
+
+// Clean up expired rate limit entries periodically
+setInterval(() => {
+  const now = Date.now();
+  
+  for (const [userId, timestamps] of attempts.entries()) {
+    const validTimestamps = timestamps.filter(timestamp => now - timestamp < 15 * 60 * 1000);
+    if (validTimestamps.length > 0) {
+      attempts.set(userId, validTimestamps);
+    } else {
+      attempts.delete(userId);
+    }
+  }
+}, 5 * 60 * 1000); // Clean up every 5 minutes
+
 module.exports = {
   auth,
   optionalAuth,
-  authorize,
-  requireVerification
+  requireEmailVerification,
+  requireUserType,
+  authWithEmailVerification,
+  authWithUserType,
+  authWithEmailAndUserType,
+  requireAdmin,
+  createUserRateLimit
 };
