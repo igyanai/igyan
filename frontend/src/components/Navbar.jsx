@@ -6,10 +6,10 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 
 const navItems = [
   { name: 'Home', path: '/' },
+  { name: 'AIGuide', path: '/aiguide' },
   { name: 'Explore Skills', path: '/courses' },
   { name: 'Projects', path: '/projects' },
   { name: 'Mentors', path: '/mentors' },
-  { name: 'AIGuide', path: '/aiguide' },
   { name: 'Companies', path: '/companies' },
   { name: 'About', path: '/about' },
   { name: 'Contact', path: '/contact' },

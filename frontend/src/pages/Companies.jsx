@@ -192,7 +192,7 @@ const Companies = () => {
 
             {/* Toggle Buttons */}
             <div className="flex justify-center mb-8">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-2 flex">
+              <div className="bg-white/10 backdrop-blur-sm rounded p-2 flex">
                 <button
                   onClick={() => setSelectedTab('companies')}
                   className={`px-6 py-3 rounded-xl transition-all ${selectedTab === 'companies' ? 'bg-white text-purple-800 font-semibold' : 'text-white hover:bg-white/10'

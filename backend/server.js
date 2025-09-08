@@ -101,6 +101,11 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/partnership', partnershipRoutes);
 
+// ************* routes of project and company & mentor routes **************
+const apiRoutes = require('./routes/api');
+app.use('/api', apiRoutes);
+
+
 const OpenAI = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
