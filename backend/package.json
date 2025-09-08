@@ -25,6 +25,7 @@
     "express-rate-limit": "^8.0.1",
     "express-session": "^1.18.2",
     "express-validator": "^7.2.1",
+    "google-tts-api": "^2.0.2",
     "handlebars": "^4.7.8",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -36,6 +37,7 @@
     "openai": "^5.13.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "uuid": "^8.3.2",
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {

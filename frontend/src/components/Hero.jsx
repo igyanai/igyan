@@ -4,7 +4,7 @@ import { IoIosSend } from "react-icons/io";
 import bgimg from "../assets/hero-ai-learning-ByJUC3BB.jpg"
 import { useNavigate } from 'react-router-dom';
 import { Calendar, FileText, Upload, Users, Cpu, Brain, Sun, Moon } from "lucide-react";
-import { FeatureCards,JourneySection,  HowItWorks, CTASection, TestimonialSection, StatsGrid, ActionButtons } from './HeroSection/index';
+import { FeatureCards,JourneySection,  HowItWorks, CTASection, TestimonialSection, StatsGrid, ActionButtons, HeroSection } from './HeroSection/index';
 
 const features = [
     {
@@ -97,21 +97,22 @@ const toggleTheme = () => {
                     backgroundPosition: 'center',
                     backgroundAttachment: window.innerWidth > 768 ? 'fixed' : 'scroll'
                 }}
-            >
+                >
                 {/* Overlay for low opacity background */}
                 <div className="absolute inset-0 bg-white/70 dark:bg-black/60" style={{ zIndex: 1 }}></div>
 
                 <div className="relative max-w-7xl mx-auto text-center" style={{ zIndex: 2 }}>
-                    {/* Badge */}
-                    <div className="flex flex-col sm:flex-row items-center justify-center mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+                <HeroSection/>
+                    
+                    {/* <div className="flex flex-col sm:flex-row items-center justify-center mb-4 sm:mb-6 space-y-2 sm:space-y-0">
                         <FaRobot className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-indigo-700 sm:mr-2" />
                         <span className="text-sm sm:text-base lg:text-lg text-indigo-700 font-medium text-center">
                             Next-Gen Education Platform
                         </span>
-                    </div>
+                    </div> */}
 
                     {/* Main Heading */}
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-2 sm:mb-4 leading-tight px-2 sm:px-0">
+                    {/* <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-2 sm:mb-4 leading-tight px-2 sm:px-0">
                         <span className="block mb-2 sm:mb-0 sm:inline">Learn. Build. Get Hired.</span>
                     </h1>
                     <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 leading-tight px-2 sm:px-0">
@@ -120,16 +121,16 @@ const toggleTheme = () => {
                         >
                             Real Skills. Real Projects. Real Mentors.
                         </span>
-                    </h1>
+                    </h1> */}
 
                     {/* Subtitle */}
-                    <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-8 sm:mb-10 lg:mb-12 max-w-4xl mx-auto leading-relaxed px-2 sm:px-4">
+                    {/* <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-8 sm:mb-10 lg:mb-12 max-w-4xl mx-auto leading-relaxed px-2 sm:px-4">
                         Gain real-world skills, solve industry projects, and prove your talent through our AI-powered mentor-led platform — no degree needed
-                    </p>
+                    </p> */}
 
                     {/* Search Input */}
                     {/* AI Response */}
-                    {(isTyping || aiResponse) && (
+                    {/* {(isTyping || aiResponse) && (
                         <div className=" w-full my-4 mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border-l-4 border-indigo-600">
                             {isTyping ? (
                                 <div className="flex items-center space-x-2">
@@ -164,7 +165,7 @@ const toggleTheme = () => {
                         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 px-2 sm:px-0">
                             Try: "I want to learn finance" or "Help me become a freelancer"
                         </p>
-                    </div>
+                    </div> */}
 
                 <ActionButtons handleCoursesClick={handleCoursesClick}/>
                     <StatsGrid/>

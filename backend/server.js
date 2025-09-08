@@ -7,12 +7,14 @@ const MongoStore = require('connect-mongo');
 const passport = require('passport');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const fetch = require('node-fetch');
 require('dotenv').config();
+const path = require('path');
+const chatRoutes = require("./routes/chatRoutes");
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const apiRoutes = require('./routes/api');
 
 const app = express();
 
@@ -91,40 +93,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/igyan-ai'
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/user', userRoutes);
 // ************* routes of project and company & mentor routes **************
-const apiRoutes = require('./routes/api');
 app.use('/api', apiRoutes);
-
-
-const OpenAI = require("openai");
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-app.post("/api/ai/chat", async (req, res) => {
-  try {
-    const { message, history } = req.body;
-
-    if (!message) {
-      return res.status(400).json({ error: "Message is required" });
-    }
-
-    const messages = [
-      ...(history || []),
-      ...MongoStore(search),
-      { role: "user", content: message }
-    ];
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages,
-    });
-
-    res.json({ reply: completion.choices[0].message });
-  } catch (err) {
-    console.error("Chat error:", err);
-    res.status(500).json({ error: "Failed to connect to AI" });
-  }
-});
-
-
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -200,6 +169,16 @@ app.use((err, req, res, next) => {
 //   });
 // });
 
+// ----------------- Blackbox AI --------------------
+
+
+// Serve audio files
+app.use("/audio", express.static(path.join(__dirname, "audio")));
+
+// Blackbox AI chat routes
+app.use("/api", chatRoutes);
+
+// ----------------- Start Server -------------------
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
