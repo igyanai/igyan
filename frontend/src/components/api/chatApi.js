@@ -7,7 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
  */
 export const sendMessageToAI = async (message) => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/chat`, {
@@ -20,16 +20,24 @@ export const sendMessageToAI = async (message) => {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
+      // Handle Blackbox-specific errors gracefully
+      
+      if (errorData.error?.type === "budget_exceeded") {
+        throw new Error("Your AI quota has been exceeded. Please upgrade your plan.");
+      }
       throw new Error(errorData.message || `API error: ${response.status}`);
     }
 
     return await response.json(); // { message, audio_url }
   } catch (err) {
-    if (err.name === 'AbortError') {
+    clearTimeout(timeoutId);
+
+    if (err.name === "AbortError") {
       console.error("Chat API Error: Request timed out");
       throw new Error("Request timed out. Please try again.");
     }
+
     console.error("Chat API Error:", err);
     throw err;
   }
@@ -58,7 +66,7 @@ export const sendMessageToAI = async (message) => {
 // };
 
 
-// const BLACKBOX_API_URL = "https://api.blackbox.ai/chat/completions";
+// const BLACKBOX_API_URL = "https://api.blackboxai.dev/chat/completions";
 // const BLACKBOX_API_KEY = import.meta.env.VITE_BLACKBOX_KEY; // ⚠️ Keep secret for production
 
 // console.log("Using Blackbox API Key:", BLACKBOX_API_KEY);

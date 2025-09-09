@@ -3,6 +3,7 @@ const { generateTTS } = require("../services/ttsService.js");
 const { v4: uuidv4 } = require("uuid");
 
 const chatHistory = [];
+const MAX_HISTORY = 100; 
 
 const handleChat = async (req, res) => {
   try {
@@ -12,15 +13,24 @@ const handleChat = async (req, res) => {
     }
 
     // Get response from AI service
-    const aiResponseData = await getAIResponse(message);
-    const aiMessage = aiResponseData?.response || aiResponseData?.output;
-
-    if (!aiMessage || typeof aiMessage !== "string" || aiMessage.trim() === "") {
-      console.error("AI service returned an empty or invalid response.");
-      return res.status(500).json({ error: "Could not get a valid response from the AI service." });
+    let aiResponseData;
+    try {
+      aiResponseData = await getAIResponse(message);
+    } catch (err) {
+      // Detect Blackbox quota error
+      if (err.message?.includes("quota") || err.message?.includes("budget_exceeded")) {
+        return res.status(429).json({ error: "AI quota exceeded. Please upgrade your plan." });
+      }
+      throw err; // rethrow other errors
     }
 
-    // generate TTS audio
+    const aiMessage = aiResponseData?.response || aiResponseData?.output;
+    if (!aiMessage || typeof aiMessage !== "string" || aiMessage.trim() === "") {
+      console.error("AI service returned an empty or invalid response.");
+      return res.status(502).json({ error: "AI service returned an invalid response." });
+    }
+
+    // Generate TTS audio (optional)
     let audioFilename = null;
     try {
       audioFilename = await generateTTS(aiMessage);
@@ -37,20 +47,24 @@ const handleChat = async (req, res) => {
       timestamp: new Date().toISOString(),
     };
 
+    // Store history, limit to MAX_HISTORY
     chatHistory.unshift(chatEntry);
+    if (chatHistory.length > MAX_HISTORY) {
+      chatHistory.pop();
+    }
 
-    res.json({
-      message: aiMessage,
-      audio_url: audioUrl,
-    });
+    res.json(chatEntry); // return full entry so frontend has ID + timestamp
   } catch (err) {
     console.error("Chat Error:", err.stack || err.message || err);
-    res.status(500).json({ error: "An unexpected error occurred on the server." });
+    if (err.response) {
+      console.error("Error response data:", err.response.data);
+    }
+    res.status(500).json({ error: "Server error while processing chat request." });
   }
 };
 
 const getHistory = (req, res) => {
-  res.json(chatHistory.slice(0, 20));
+  res.json(chatHistory.slice(0, 20)); // latest 20 chats
 };
 
 module.exports = { handleChat, getHistory };
