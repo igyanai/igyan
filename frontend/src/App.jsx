@@ -24,6 +24,7 @@ function AppContent() {
   return (
     <div className="min-h-screen transition-colors duration-300 bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
       <Navbar />
+
       <LoginModal />
 
       <Routes>
@@ -56,9 +57,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        
-          <AppContent />
-        
+
+        <AppContent />
+
       </AuthProvider>
     </ThemeProvider>
   );

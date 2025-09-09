@@ -29,23 +29,6 @@ const Mentor = () => {
   const dispatch = useDispatch();
   const { mentors, status, error } = useSelector((state) => state.mentors);
 
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [viewMode, setViewMode] = useState('find'); // 'find' or 'apply'
-  const [calendlyOpen, setCalendlyOpen] = useState(false);
-  const [selectedMentorUrl, setSelectedMentorUrl] = useState('');
-
-  useEffect(() => {
-    dispatch(fetchMentors());
-  }, [dispatch]);
-
-  const categories = [
-    { name: 'All', count: mentorsData.length, emoji: '🎯' },
-    { name: 'Technology', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('react') || skill.toLowerCase().includes('node') || skill.toLowerCase().includes('python'))).length, emoji: '💻' },
-    { name: 'Business', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('product') || skill.toLowerCase().includes('strategy'))).length, emoji: '💼' },
-    { name: 'Design', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('design') || skill.toLowerCase().includes('ui') || skill.toLowerCase().includes('ux'))).length, emoji: '🎨' },
-    { name: 'Marketing', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('marketing') || skill.toLowerCase().includes('data'))).length, emoji: '📈' }
-  ];
-
   const defaultMentors = [
     {
       id: 1,
@@ -129,6 +112,26 @@ const Mentor = () => {
     }
   ];
 
+  // Define mentorsData before it's used
+  const mentorsData = mentors.length > 0 ? mentors : defaultMentors;
+
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [viewMode, setViewMode] = useState('find'); // 'find' or 'apply'
+  const [calendlyOpen, setCalendlyOpen] = useState(false);
+  const [selectedMentorUrl, setSelectedMentorUrl] = useState('');
+
+  useEffect(() => {
+    dispatch(fetchMentors());
+  }, [dispatch]);
+
+  const categories = [
+    { name: 'All', count: mentorsData.length, emoji: '🎯' },
+    { name: 'Technology', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('react') || skill.toLowerCase().includes('node') || skill.toLowerCase().includes('python'))).length, emoji: '💻' },
+    { name: 'Business', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('product') || skill.toLowerCase().includes('strategy'))).length, emoji: '💼' },
+    { name: 'Design', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('design') || skill.toLowerCase().includes('ui') || skill.toLowerCase().includes('ux'))).length, emoji: '🎨' },
+    { name: 'Marketing', count: mentorsData.filter(m => m.expertise.some(skill => skill.toLowerCase().includes('marketing') || skill.toLowerCase().includes('data'))).length, emoji: '📈' }
+  ];
+
   const mentorshipPrograms = [
     {
       title: '1-on-1 Career Guidance',
@@ -152,8 +155,6 @@ const Mentor = () => {
       features: ['Learning Plan', 'Practice Projects', 'Progress Tracking', 'Certification']
     }
   ];
-
-  const mentorsData = mentors.length > 0 ? mentors : defaultMentors;
 
   const filteredMentors = mentorsData.filter(mentor =>
     selectedCategory === 'All' || mentor.expertise.some(skill =>
@@ -564,7 +565,7 @@ const Mentor = () => {
                         <label className="block text-sm font-semibold mb-2">LinkedIn Profile</label>
                         <input type="url" className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />
                       </div>
-                      <button type="submit" className="w-full bg-blue-700 text-whitepy-3 rounded-lg font-semibold hover:bg-blue-700-glow transition-colors">
+                      <button type="submit" className="w-full py-4 bg-blue-800 hover:bg-blue-600text-whitepy-3 rounded-lg font-semibold hover:bg-blue-700-glow transition-colors">
                         Submit Application
                       </button>
                     </form>
