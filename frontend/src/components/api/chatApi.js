@@ -3,14 +3,15 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 /**
  * Send message to backend AI and get response
  * @param {string} message - User input message
+ * @param {"blackbox" | "openai"} provider - Which AI provider to use
  * @returns {Promise<{message: string, audio_url?: string}>}
  */
-export const sendMessageToAI = async (message) => {
+export const sendMessageToAI = async (message, provider = "blackbox") => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+    const response = await fetch(`${API_BASE_URL}/api/chat/${provider}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
@@ -21,11 +22,12 @@ export const sendMessageToAI = async (message) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      // Handle Blackbox-specific errors gracefully
-      
+
+      // Handle Blackbox-specific error
       if (errorData.error?.type === "budget_exceeded") {
-        throw new Error("Your AI quota has been exceeded. Please upgrade your plan.");
+        throw new Error("Your Blackbox AI quota has been exceeded. Please upgrade your plan.");
       }
+
       throw new Error(errorData.message || `API error: ${response.status}`);
     }
 
@@ -42,6 +44,7 @@ export const sendMessageToAI = async (message) => {
     throw err;
   }
 };
+
 
 // /**
 //  * (Optional) Get chat history from backend
