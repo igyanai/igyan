@@ -5,6 +5,7 @@ import bgimg from "../assets/hero-ai-learning-ByJUC3BB.jpg"
 import { useNavigate } from 'react-router-dom';
 import { Calendar, FileText, Upload, Users, Cpu, Brain, Sun, Moon } from "lucide-react";
 import { FeatureCards,JourneySection,  HowItWorks, CTASection, TestimonialSection, StatsGrid, ActionButtons, HeroSection } from './HeroSection/index';
+// import AIBot3D from './HeroSection/AIBot3D';
 
 const features = [
     {
@@ -102,7 +103,23 @@ const toggleTheme = () => {
                 <div className="absolute inset-0 bg-white/70 dark:bg-black/60" style={{ zIndex: 1 }}></div>
 
                 <div className="relative max-w-7xl mx-auto text-center" style={{ zIndex: 2 }}>
+               
+               {/* // ai bot  */}
+               <div className='flexn relative flex-row md:flex-row sm:flex-col w-full h-full ' >
+                {/* <div
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `url(${bgimg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+        }}
+      >
+        <div className="absolute inset-0 bg-blue-900/60 dark:bg-gray-950/70 backdrop-blur-sm"></div>
+      </div> */}
                 <HeroSection/>
+                {/* <AIBot3D/> */}
+               </div>
                     
                     {/* <div className="flex flex-col sm:flex-row items-center justify-center mb-4 sm:mb-6 space-y-2 sm:space-y-0">
                         <FaRobot className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-indigo-700 sm:mr-2" />

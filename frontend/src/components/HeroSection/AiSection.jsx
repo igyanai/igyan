@@ -5,6 +5,7 @@ import { FaRobot, FaMicrophone, FaSpinner, FaMicrophoneAlt } from 'react-icons/f
 import { IoIosSend } from "react-icons/io";
 import { useNavigate } from 'react-router-dom';
 import { NavLink } from 'react-router-dom';
+import AIBot3D from './AIBot3D';
 
 // Mock background image URL for demonstration
 const bgimg = "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
@@ -142,10 +143,11 @@ const HeroSection = () => {
 
   return (
     <motion.section
-      className="relative orbitron py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
+      className="relative mb-10 orbitron py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden"
       initial="hidden"
       animate="visible"
       variants={heroVariants}
+      
     >
       {/* Background Image and Overlay */}
       <div
@@ -161,7 +163,7 @@ const HeroSection = () => {
       </div>
 
       <motion.div
-        className="relative max-w-7xl mx-auto text-center z-10"
+        className=" relative max-w-7xl mx-auto text-center z-10"
         variants={staggerVariants}
       >
         {/* Badge */}
@@ -170,7 +172,7 @@ const HeroSection = () => {
           variants={itemVariants}
         >
           <div className="flex items-center gap-2 p-2 px-4 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30">
-            <FaRobot className="w-5 h-5 text-blue-300" />
+            <FaRobot className="w-5 h-5 text-blue-400" />
             <span className="text-sm font-medium">Next-Gen Education Platform</span>
           </div>
         </motion.div>
@@ -185,13 +187,13 @@ const HeroSection = () => {
 
         {/* Dynamic Typing Sub-heading */}
         <motion.h2
-          className="text-3xl md:text-5xl font-bold text-blue-300 mb-6"
+          className="text-3xl md:text-5xl font-bold text-green-400 mb-6"
           variants={itemVariants}
         >
           {typingPhrase}
         </motion.h2>
 
-        {/* Subtitle */}
+          {/* Subtitle */}
         <motion.p
           className="text-base md:text-xl text-gray-200 mb-10 max-w-3xl mx-auto leading-relaxed"
           variants={itemVariants}
@@ -201,11 +203,12 @@ const HeroSection = () => {
 
         {/* AI Chat Input */}
         <motion.div
-          className="w-full max-w-[160px] mx-auto p-4 bg-white/20 backdrop-blur-lg rounded-2xl shadow-xl border border-white/30"
+          className="w-screen max-w-[1000px] mx-auto p-4 bg-white/20 backdrop-blur-lg rounded-2xl shadow-xl border border-white/30"
           variants={itemVariants}
         >
+              <AIBot3D/>
           <form onSubmit={onChatSubmit} className="flex items-center gap-3">
-            <div className="relative flex-grow">
+            <div className="relative mx-auto items-center flex flex-grow">
               {/* <input
                 type="text"
                 value={chatInput}
@@ -216,7 +219,7 @@ const HeroSection = () => {
               <button
                 type="button"
                 onClick={startRecording}
-                className="absolute bg-white p-4 rounded-full right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
+                className="absolute bg-white p-4 rounded-full right-3 top-1/2 -translate-y-1/2 text-gray-900 hover:text-blue-600 transition-colors"
                 disabled={isListening}
               >
                 {isListening ? (
